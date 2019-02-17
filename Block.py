@@ -2,6 +2,7 @@
 # import VERSION from __init__
 import hashlib
 import time
+import json
 class block:
     def __init__(self, diffculty, time_stamp, transactions, prev_hash, Nonce):
         self.difficulty = diffculty
@@ -12,10 +13,12 @@ class block:
         self.current_hash = self.calculate_hash()
 
     def __str__(self):
-        block_str = str(self.time_stamp) + str(self.difficulty) + str(self.Nonce) + self.prev_hash 
-        for transaction in self.transactions:
-            block_str += transaction
-        print(block_str)
+        # block_str = str(self.time_stamp) + str(self.difficulty) + str(self.Nonce) + self.prev_hash 
+        # for transaction in self.transactions:
+        #     block_str += transaction
+        # print(block_str)
+        block_str = json.dumps(self, default=lambda o: o.__dict__)
+        # print(test_str)
         return block_str
 
     def calculate_hash(self):
