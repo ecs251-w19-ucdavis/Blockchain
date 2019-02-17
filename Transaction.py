@@ -72,8 +72,8 @@ class transaction:
 
 	def __str__(self):
 		tx = json.dumps(self,default=lambda x: x.__dict__)
-		msg = str(tx)
-		return msg
+		#msg = str(tx)
+		return tx
 
 
 
