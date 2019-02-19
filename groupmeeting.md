@@ -1,9 +1,9 @@
-##404 NotFound Group Meeting
+## 404 NotFound Group Meeting
 
-###What we have done:
+### What we have done:
 We have built all classes, Node, Blockchain_Util, Block, and Transaction, and designed the structure of this blockchain and finished some of the functions. In the past week, Zhiyang was responsible for block design, Chuan did the node design, Yu achieved the transaction creation and management, Yue has finished some functions blockchain utilities module.  
 
-###What we are going to details about our hybrid consensus next week, especially the voting part.
+### What we are going to details about our hybrid consensus next week, especially the voting part.
 1.	Considering using merkle tree to hash all transactions hierarchically. Right now, we just concatenate all transaction information together to get a hash for the whole thing.
 2.	Broadcast by gossip
 3.	Ignore orphan transaction
