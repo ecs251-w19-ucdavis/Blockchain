@@ -13,3 +13,5 @@ We have built all classes, Node, Blockchain_Util, Block, and Transaction, and de
 -	New blocks generated in 5 seconds will be voted, and their final score will depend on the voters. If any blocks have the same final score, the earliest generated one will win. For example, 5 new blocks are generated at each second, A, B, C, D, E, after voting, scores for 5 blocks are, let’s say, 10, 10, 10.1, 10.1, 10.1.  Then block C will enter the chain. 
 -	There also is a voting pool to collect all newly generated blocks to be voted. 
 
+### Trello
+[https://trello.com/b/xvtDboDY/hybrid-consensus-for-blockchain](https://trello.com/b/xvtDboDY/hybrid-consensus-for-blockchain)
