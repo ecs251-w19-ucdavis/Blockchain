@@ -44,10 +44,10 @@ class transaction:
 		return False
 
 
-	def create_transaction_pool(self):
-		# Initialize a global Queue
-		transaction_pool = Queue.Queue(maxsize = 0)
-		return transaction_pool
+	# def create_transaction_pool(self):
+	# 	# Initialize a global Queue
+	# 	transaction_pool = Queue.Queue(maxsize = 0)
+	# 	return transaction_pool
 
 
 	def sign(self,sk):
@@ -66,13 +66,11 @@ class transaction:
 		self.signature = my_sign
 		print("my signature is", my_sign)
 		return my_sign
-		
-
+	
 
 
 	def __str__(self):
 		tx = json.dumps(self,default=lambda x: x.__dict__)
-		#msg = str(tx)
 		return tx
 
 
