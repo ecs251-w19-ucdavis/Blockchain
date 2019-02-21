@@ -3,6 +3,7 @@
 import hashlib
 import time
 import json
+from Crypto.Hash import SHA256
 class block:
     def __init__(self, diffculty, time_stamp, transactions, prev_hash, Nonce):
         self.difficulty = diffculty
