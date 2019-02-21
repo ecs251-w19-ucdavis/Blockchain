@@ -9,7 +9,7 @@ import hashlib
 
 class node:
     neigthbor = []
-    address = ''
+    public_key = ''
     def __init__(self):
         self.blockchain = []
 
@@ -46,7 +46,13 @@ class node:
     
     def gossipl():
         return
-    
+    '''zhiyang lin'''
     def get_blance():
-        #traverse block get blance
-        return
+        total_balance = 0
+        for block in self.blockchain:
+            for transaction in block.transactions:
+                if transaction.from_address == self.public_key:
+                    total_balance -= transaction.amount
+                if transaction.to_address == self.public_key:
+                    total_balance += transaction
+        return total_balance
