@@ -54,5 +54,5 @@ class node:
                 if transaction.from_address == self.public_key:
                     total_balance -= transaction.amount
                 if transaction.to_address == self.public_key:
-                    total_balance += transaction
+                    total_balance += transaction.amount
         return total_balance
