@@ -13,16 +13,20 @@ class block:
         self.current_hash = self.calculate_hash()
 
     def __str__(self):
-        # block_str = str(self.time_stamp) + str(self.difficulty) + str(self.Nonce) + self.prev_hash 
-        # for transaction in self.transactions:
-        #     block_str += transaction
-        # print(block_str)
         block_str = json.dumps(self, default=lambda o: o.__dict__)
         # print(test_str)
         return block_str
 
     def calculate_hash(self):
-        hash_val = hashlib.sha256(self.__str__()).hexdigest()
+        data = {}
+        data['Difficulty'] = self.difficulty
+        data['Time_Stamp'] = self.time_stamp
+        data['Transactions'] = self.transactions
+        data['Nonce'] = self.Nonce
+        data['Prev_hash'] = self.prev_hash
+        json_data = json.dumps(data)
+        hash_val = hashlib.sha256(json_data).hexdigest()
+        self.current_hash = hash_val
         return hash_val
 
     def has_valid_transactions(self):
