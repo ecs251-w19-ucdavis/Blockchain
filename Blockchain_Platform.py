@@ -5,6 +5,7 @@ import random
 import json
 from scipy import stats
 import numpy as np
+from Crypto.PublicKey import RSA
 
 class blockchain_platform:
     def __int__(self, difficulty, reward):
@@ -60,7 +61,7 @@ class blockchain_platform:
         for voter in voter_json:
             voter_prob.append(voter_json[voter]/total)
         index = np.arange(len(self.voter_pool))
-        voter_cdd_index = stats.rv_discrete(name = 'voters_cdd' ,values = (index,voter_prob))
+        voter_cdd_index = np.random.choice(index, p = voter_prob, size = 10, replace = True)
         voters_cdd = self.voter_pool[voter_cdd_index]
         return voters_cdd
 
@@ -69,7 +70,15 @@ class blockchain_platform:
         return
 
     def generate_key(self):
-        return
+        """
+        rtype: pk public key
+        rtype: sk secret key
+        """
+        key = RSA.generate(2048) 
+        pk = key.publickey().exportKey("PEM") 
+        sk = key.exportKey("PEM") 
+        return pk, sk
+
 
 
 
