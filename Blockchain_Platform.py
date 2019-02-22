@@ -3,7 +3,7 @@ import time
 import datetime
 import random
 import json
-from scipy import stats
+#from scipy import stats
 import numpy as np
 from Crypto.PublicKey import RSA
 
