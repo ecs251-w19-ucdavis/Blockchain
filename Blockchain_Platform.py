@@ -4,17 +4,47 @@ import datetime
 import random
 import json
 #from scipy import stats
+import os
 import numpy as np
 from Crypto.PublicKey import RSA
+import flask
+from flask import redirect, request, views
 
-class blockchain_platform:
-    def __int__(self, difficulty, reward):
-        self.transaction_pool = []
-        self.new_block_pool = []
-        self.voter_pool = []
-        self.mining_difficulty = difficulty
-        self.mining_reward = reward
-        self.chain_creation_date = "02/10/2019"
+
+class blockchain_platform(flask.views.MethodView):
+    transaction_pool = []
+    registered_users = []
+    new_block_pool = []
+    voter_pool = []
+    mining_difficulty = 2
+    mining_reward = 50
+    chain_creation_date = "02/10/2019"
+    def get(self):
+        if request.method == 'GET':
+            action = flask.request.args.get('action')
+            if action == None or action == "":
+                return "Please specify an action"
+            print("action " + action)
+            if action == 'register':
+                address = flask.request.args.get('address')
+                print(address)
+                pk, sk = self.generate_key()
+                neighbors = self.assign_nbrs()
+                user_info = json.dumps({'status':'success',
+                                        'address':address,
+                                        'secretkey':sk,
+                                        'publickey':pk,
+                                        'neighbor':neighbors
+                                        })
+                new_node = json.dumps({'address':address,
+                                        'publickey':pk
+                                        })
+                self.registered_users.append(new_node)
+                return(user_info)
+
+            if action == 'print':
+                return str(self.registered_users)
+        
 
     def create_genesis_block(self):
         creation_date = time.mktime(datetime.datetime.strptime(self.chain_creation_date, "%d/%m/%Y").timetuple())
@@ -26,9 +56,6 @@ class blockchain_platform:
 
     def update_mining_difficulty(self, new_difficulty):
         self.mining_difficulty = new_difficulty
-
-    def add_transaction(self, transaction):
-        self.transaction_pool.append(transaction)
 
     def pick_transactions(self):
         tx_inds = []
@@ -49,7 +76,7 @@ class blockchain_platform:
 
     def pick_voters(self):
         """
-
+        
         """
         # lock voter_pool before we pick voters
         voter_str = json.dumps(self.voter_pool)
@@ -67,7 +94,8 @@ class blockchain_platform:
 
 
     def assign_nbrs(self):
-        return
+        if len(self.registered_users) == 0:
+            return 
 
     def generate_key(self):
         """
@@ -78,10 +106,3 @@ class blockchain_platform:
         pk = key.publickey().exportKey("PEM") 
         sk = key.exportKey("PEM") 
         return pk, sk
-
-
-
-
-
-
-
