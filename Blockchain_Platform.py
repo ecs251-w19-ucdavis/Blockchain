@@ -9,7 +9,7 @@ import numpy as np
 from Crypto.PublicKey import RSA
 import flask
 from flask import redirect, request, views
-
+from flask import jsonify
 
 class blockchain_platform(flask.views.MethodView):
     transaction_pool = []
@@ -40,7 +40,7 @@ class blockchain_platform(flask.views.MethodView):
                                         'publickey':pk
                                         })
                 self.registered_users.append(new_node)
-                return(user_info)
+                return user_info
 
             if action == 'print':
                 return str(self.registered_users)

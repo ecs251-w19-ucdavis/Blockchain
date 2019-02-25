@@ -3,6 +3,7 @@ import re
 from flask import Flask
 from flask import redirect, request, views
 from flask import Response
+from flask import jsonify
 import flask
 
 from Blockchain_Platform import *
@@ -21,7 +22,7 @@ def create_app():
     return app
 
 if __name__ == "__main__":
-    _port = 8081
+    _port = 8000
     print('\n [*] Start API Service on port: %s' % (_port))
     app = create_app()
     app.run(host='0.0.0.0', port=_port, threaded=True, debug=True, use_reloader=True)
