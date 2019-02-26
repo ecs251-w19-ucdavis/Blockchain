@@ -10,3 +10,6 @@
 -	Limit the number of transactions in one block, say, 10. Miner selects 15 transactions, and only pick 10 transactions with highest transaction service fee.
 -	Finish all functions of the node class and voting mechanism. 
 -	Try to run the simulation. We assign different money to each new nodes, and add double spending attack when make transaction, after the length of blockchain is greater than 100, we calculate the balance of each one to see if there are some nodes whose balance is illegal based on the information in the blockchain.
+
+#### Trello
+[https://trello.com/b/xvtDboDY/hybrid-consensus-for-blockchain](https://trello.com/b/xvtDboDY/hybrid-consensus-for-blockchain)
