@@ -1,7 +1,7 @@
 import os
 import datetime
 import time
-#from Transaction import *
+from Transaction import *
 from Block import block
 import hashlib
 import requests
@@ -15,17 +15,31 @@ import json
 
 client_port = 0
 class node(flask.views.MethodView):
-    neigthbor = []
+    is_registered = False
+    neigthbors = []
     ip_address = 0
-    public_key = ''
-    private_key = ''
+    keytup = []
+    public_key = []
+    private_key = []
     blockchain = []
+    keys = None
     def get(self):
         if request.method == 'GET':
             action = flask.request.args.get('action')
             if action == 'register':
                 keys = self.generate_key()
                 return keys
+            if action == 'getkeys':
+                print('getting keys')
+                if self.public_key == '':
+                    return 'no keys'
+                else:
+                    return str(self.keytup)
+            if action == 'transfer':
+                to_address = flask.request.args.get('to_address')
+                amount = flask.request.args.get('amount')
+                new_tx = transaction(self.ip_address,self.to_address,)
+                self.transfer(new_tx)
 
     def generate_key(self):
         self.ip_address = app.config['port']
@@ -33,6 +47,15 @@ class node(flask.views.MethodView):
         args = {'action':'register', 'address':self.ip_address}
         r = requests.get('http://127.0.0.1:8000/blockchain_platform', params=args)
         if r.status_code == 200:
+            self.is_registered = True 
+            self.keys = json.loads(r.text)
+            print(self.keys)
+            self.keytup.append(self.keys['public_key'])
+            self.keytup.append(self.keys['private_key'])
+            self.public_key = self.keys['public_key']
+            self.private_key =  self.keys['private_key']
+            print('this is private key' + self.private_key)
+            # print(self.public_key)
             return r.text
 
     def mining(self, transactions):
@@ -56,12 +79,17 @@ class node(flask.views.MethodView):
             bin_hash_val = ( bin(int(hash_val, 16))[2:] ).zfill(256)
         print(bin_hash_val)
         return newblock
-        
-    def transfer(to_address, amount):
-        trans = transaction(self.address, to_address, amount)
-        trans.sign(self.key)
-        return trans
     
+    # def get_keys()
+    def transfer(new_tx):
+        for address in neigthbors:
+            #do something
+            return trans
+    
+    # def shown_neighbour(self):
+    #     str =''
+    #     for neighbor in self.neigthbors:
+            
     # def gossipl():
     #     return
 

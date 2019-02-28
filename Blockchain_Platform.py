@@ -16,7 +16,7 @@ class blockchain_platform(flask.views.MethodView):
     registered_users = []
     new_block_pool = []
     voter_pool = []
-    mining_difficulty = 2
+    mining_difficulty = [2]
     mining_reward = 50
     chain_creation_date = "02/10/2019"
     def get(self):
@@ -32,18 +32,22 @@ class blockchain_platform(flask.views.MethodView):
                 neighbors = self.assign_nbrs()
                 user_info = json.dumps({'status':'success',
                                         'address':address,
-                                        'secretkey':sk,
-                                        'publickey':pk,
+                                        'private_key':sk,
+                                        'public_key':pk,
                                         'neighbor':neighbors
                                         })
                 new_node = json.dumps({'address':address,
-                                        'publickey':pk
+                                        'public_key':pk
                                         })
                 self.registered_users.append(new_node)
                 return user_info
 
             if action == 'print':
+                print(self.mining_difficulty[0])
                 return str(self.registered_users)
+            if action == 'update_difficulty':
+                self.update_mining_difficulty(4)
+                return str(self.mining_difficulty[0])
         
 
     def create_genesis_block(self):
@@ -55,7 +59,7 @@ class blockchain_platform(flask.views.MethodView):
             self.mining_reward /= 2
 
     def update_mining_difficulty(self, new_difficulty):
-        self.mining_difficulty = new_difficulty
+        self.mining_difficulty[0] = new_difficulty
 
     def pick_transactions(self):
         tx_inds = []
@@ -95,13 +99,12 @@ class blockchain_platform(flask.views.MethodView):
 
     def assign_nbrs(self):
         if len(self.registered_users) == 0:
+            return []
+        else:
+            
             return 
 
     def generate_key(self):
-        """
-        rtype: pk public key
-        rtype: sk secret key
-        """
         key = RSA.generate(2048) 
         pk = key.publickey().exportKey("PEM") 
         sk = key.exportKey("PEM") 

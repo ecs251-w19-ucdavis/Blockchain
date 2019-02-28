@@ -34,8 +34,8 @@ class transaction:
 		# check if the amount is less than the money of the from_adress
 
 
-		if :
-			is_amount_valid = True
+		# if :
+		# 	is_amount_valid = True
 
 
 		if is_sign_valid and is_amount_valid:
