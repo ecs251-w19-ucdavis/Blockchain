@@ -18,13 +18,15 @@ class node(flask.views.MethodView):
     is_registered = False
     neighbors = []
     ip_address = []
-    public_key = []
-    private_key = []
+    public_key = [None]
+    private_key = [None]
     blockchain = []
     def get(self):
         if request.method == 'GET':
             action = flask.request.args.get('action')
             if action == 'register':
+                if self.public_key[0] != None:
+                    return 'It is already registerd'
                 keys = self.generate_key()
                 return keys
             if action == 'getkeys':
@@ -37,11 +39,13 @@ class node(flask.views.MethodView):
             if action == 'transfer':
                 to_address = flask.request.args.get('to_address')
                 amount = flask.request.args.get('amount')
-                new_tx = transaction(self.ip_address,self.to_address,)
-                self.transfer(new_tx)
+                new_tx = transaction(self.ip_address, to_address,amount)
+                # self.transfer(new_tx)
             if action == 'show_neighbors':
                 for neighbor in self.neighbors:
                     print(neighbor)
+                    neighbor = json.loads(neighbor)
+                    print('neighbor address ' + neighbor['address'])
                     print('-----')
                 return 'showing neighbors'
 
@@ -52,16 +56,19 @@ class node(flask.views.MethodView):
         r = requests.get('http://127.0.0.1:8000/blockchain_platform', params=args)
         if r.status_code == 200:
             self.is_registered = True 
+            print(r.text)
             keys = json.loads(r.text)
             # self.keytup.append(self.keys['public_key'])
             # self.keytup.append(self.keys['private_key'])
-            self.public_key.append(keys['public_key'])
-            self.private_key.append(keys['private_key'])
+            # print(keys['public_key'])
+            # print(keys['private_key'])
+            self.public_key[0] = keys['public_key']
+            self.private_key[0] = keys['private_key']
             # print('this is private key' + self.private_key[0])
             for neighbor in keys['neighbors']:
                 print(neighbor)
                 self.neighbors.append(neighbor)
-            print(self.neighbors)
+            # print(self.neighbors)
             return r.text
 
     def mining(self, transactions):
