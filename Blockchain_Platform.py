@@ -34,7 +34,7 @@ class blockchain_platform(flask.views.MethodView):
                                         'address':address,
                                         'private_key':sk,
                                         'public_key':pk,
-                                        'neighbor':neighbors
+                                        'neighbors':neighbors
                                         })
                 new_node = json.dumps({'address':address,
                                         'public_key':pk
@@ -43,8 +43,8 @@ class blockchain_platform(flask.views.MethodView):
                 return user_info
 
             if action == 'print':
-                print(self.mining_difficulty[0])
-                return str(self.registered_users)
+                print(json.dumps(self.registered_users))
+                return json.dumps(self.registered_users)
             if action == 'update_difficulty':
                 self.update_mining_difficulty(4)
                 return str(self.mining_difficulty[0])
@@ -101,9 +101,8 @@ class blockchain_platform(flask.views.MethodView):
         if len(self.registered_users) == 0:
             return []
         else:
-            
-            return 
-
+            return self.registered_users
+    
     def generate_key(self):
         key = RSA.generate(2048) 
         pk = key.publickey().exportKey("PEM") 

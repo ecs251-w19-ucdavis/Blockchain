@@ -16,13 +16,11 @@ import json
 client_port = 0
 class node(flask.views.MethodView):
     is_registered = False
-    neigthbors = []
-    ip_address = 0
-    keytup = []
+    neighbors = []
+    ip_address = []
     public_key = []
     private_key = []
     blockchain = []
-    keys = None
     def get(self):
         if request.method == 'GET':
             action = flask.request.args.get('action')
@@ -31,31 +29,39 @@ class node(flask.views.MethodView):
                 return keys
             if action == 'getkeys':
                 print('getting keys')
-                if self.public_key == '':
+                if self.public_key == []:
                     return 'no keys'
                 else:
-                    return str(self.keytup)
+                    print('ipaddress' + str(app.config['port']))
+                    return self.public_key[0]
             if action == 'transfer':
                 to_address = flask.request.args.get('to_address')
                 amount = flask.request.args.get('amount')
                 new_tx = transaction(self.ip_address,self.to_address,)
                 self.transfer(new_tx)
+            if action == 'show_neighbors':
+                for neighbor in self.neighbors:
+                    print(neighbor)
+                    print('-----')
+                return 'showing neighbors'
 
     def generate_key(self):
-        self.ip_address = app.config['port']
+        ip_address = app.config['port']
         # print('ip_address is ' + str(self.ip_address))
-        args = {'action':'register', 'address':self.ip_address}
+        args = {'action':'register', 'address':ip_address}
         r = requests.get('http://127.0.0.1:8000/blockchain_platform', params=args)
         if r.status_code == 200:
             self.is_registered = True 
-            self.keys = json.loads(r.text)
-            print(self.keys)
-            self.keytup.append(self.keys['public_key'])
-            self.keytup.append(self.keys['private_key'])
-            self.public_key = self.keys['public_key']
-            self.private_key =  self.keys['private_key']
-            print('this is private key' + self.private_key)
-            # print(self.public_key)
+            keys = json.loads(r.text)
+            # self.keytup.append(self.keys['public_key'])
+            # self.keytup.append(self.keys['private_key'])
+            self.public_key.append(keys['public_key'])
+            self.private_key.append(keys['private_key'])
+            # print('this is private key' + self.private_key[0])
+            for neighbor in keys['neighbors']:
+                print(neighbor)
+                self.neighbors.append(neighbor)
+            print(self.neighbors)
             return r.text
 
     def mining(self, transactions):
@@ -82,7 +88,7 @@ class node(flask.views.MethodView):
     
     # def get_keys()
     def transfer(new_tx):
-        for address in neigthbors:
+        for address in neighbors:
             #do something
             return trans
     
