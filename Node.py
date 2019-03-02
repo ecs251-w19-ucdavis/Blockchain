@@ -38,23 +38,32 @@ class node(flask.views.MethodView):
                     print('ipaddress' + str(app.config['port']))
                     return self.public_key[0]
             if action == 'transfer':
+                from_address = self.ip_address
                 to_address = flask.request.args.get('to_address')
                 amount = flask.request.args.get('amount')
-                new_tx = transaction(self.ip_address, to_address,amount)
+                new_tx = transaction(app.config['port'], to_address, amount)
+                self.transaction_pool.append(str(new_tx))
+                self.transfer(str(new_tx))
+                print('called transfer')
+                return str(new_tx)
                 # self.transfer(new_tx)
-            if action == 'gossip':
-                item = flask.request.args.get('item')
+
+
+            if action == 'gossip_transaction':
                 content = flask.request.args.get('content')
-                if item == 'transaction':
-                    if content in self.transaction_pool:
-                        print('has tx')
-                    else:
-                        self.transaction_pool.append(content)
-                if item == 'block':
-                    if content in self.blockchain:
-                        print('has block')
-                    else:
-                        self.blockchain.append(content)
+                if content in self.transaction_pool:
+                    print('Already has that transaction')
+                    return 'Already has that transaction'
+                else:
+                    self.transaction_pool.append(content)
+                    self.transfer(content)
+                    print(content + ' has been added to the transaction pool. Sending it to neighbors')
+                    return content + ' has been added to the transaction pool. Sending it to neighbors'
+                # if item == 'block':
+                #     if content in self.blockchain:
+                #         print('has block')
+                #     else:
+                #         self.blockchain.append(content)
 
 
 
@@ -65,6 +74,10 @@ class node(flask.views.MethodView):
                     print('neighbor address ' + neighbor['address'])
                     print('-----')
                 return 'showing neighbors'
+            if action == 'show_transactions':
+                for tx in self.transaction_pool:
+                    print(tx)
+                return str(self.transaction_pool)
 
     def generate_key(self):
         ip_address = app.config['port']
@@ -111,20 +124,24 @@ class node(flask.views.MethodView):
         return newblock
     
     # def get_keys()
-    def transfer(new_tx):
+    def transfer(self, new_tx):
+        print('inside transfer')
         for neighbor in self.neighbors:
+            print('neighbor')
             neighbor = json.loads(neighbor)
             print('neighbor address ' + neighbor['address'])
-            args = {'action':'register', 'address':ip_address, }
+            args = {'action':'gossip_transaction', 'content':new_tx}
             url = 'http://127.0.0.1:' + neighbor['address'] + '/node'
+            print('trying to gossip transaction ' + url)
             r = requests.get(url, params=args)
-            return 'Making a transaction'
+            print(r.text)
+        return 'Making a transaction'
     
     # def shown_neighbour(self):
     #     str =''
     #     for neighbor in self.neigthbors:
             
-    # def gossipl():
+    # def gossip():
     #     return
 
     '''zhiyang lin'''

@@ -106,6 +106,8 @@ class blockchain_platform(flask.views.MethodView):
         user_num = len(self.address_list)
         if user_num == 0:
             return []
+        elif user_num <= 2:
+            return self.address_list
         elif user_num < 10:
             s = set()
             n = user_num/3

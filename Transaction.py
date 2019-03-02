@@ -8,7 +8,7 @@ from Crypto.Hash import SHA256
 from Crypto.PublicKey import RSA
 
 class transaction:
-	def __init__(self, from_address, to_address, amount, sk):
+	def __init__(self, from_address, to_address, amount):
 		self.from_address = from_address
 		self.to_address = to_address
 		self.amount = amount
