@@ -105,10 +105,26 @@ class blockchain_platform(flask.views.MethodView):
 
 
     def assign_nbrs(self):
-        if len(self.address_list) == 0:
+        l = []
+        user_num = len(self.address_list)
+        if user_num == 0:
             return []
+        elif user_num < 10:
+            s = set()
+            n = user_num/3
+            while len(s) < n:
+                s.add(random.randint(0,user_num - 1))
+            for x in s:
+                l.append(self.address_list[x])
+            return l
         else:
-            return self.address_list
+            s = set()
+            n = random.randint(1, user_num/3)
+            while len(s) < n:
+                s.add(random.randint(0,user_num - 1))
+            for x in s:
+                l.append(self.address_list[x])
+            return l
     
     def generate_key(self):
         key = RSA.generate(2048) 
