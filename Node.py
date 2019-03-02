@@ -21,6 +21,7 @@ class node(flask.views.MethodView):
     public_key = [None]
     private_key = [None]
     blockchain = []
+    transaction_pool = []
     def get(self):
         if request.method == 'GET':
             action = flask.request.args.get('action')
@@ -41,9 +42,25 @@ class node(flask.views.MethodView):
                 amount = flask.request.args.get('amount')
                 new_tx = transaction(self.ip_address, to_address,amount)
                 # self.transfer(new_tx)
+            if action == 'gossip':
+                item = flask.request.args.get('item')
+                content = flask.request.args.get('content')
+                if item == 'transaction':
+                    if content in self.transaction_pool:
+                        print('has tx')
+                    else:
+                        self.transaction_pool.append(content)
+                if item == 'block':
+                    if content in self.blockchain:
+                        print('has block')
+                    else:
+                        self.blockchain.append(content)
+
+
+
             if action == 'show_neighbors':
                 for neighbor in self.neighbors:
-                    print(neighbor)
+                    # print(neighbor)
                     neighbor = json.loads(neighbor)
                     print('neighbor address ' + neighbor['address'])
                     print('-----')
@@ -95,9 +112,13 @@ class node(flask.views.MethodView):
     
     # def get_keys()
     def transfer(new_tx):
-        for address in neighbors:
-            #do something
-            return trans
+        for neighbor in self.neighbors:
+            neighbor = json.loads(neighbor)
+            print('neighbor address ' + neighbor['address'])
+            args = {'action':'register', 'address':ip_address, }
+            url = 'http://127.0.0.1:' + neighbor['address'] + '/node'
+            r = requests.get(url, params=args)
+            return 'Making a transaction'
     
     # def shown_neighbour(self):
     #     str =''

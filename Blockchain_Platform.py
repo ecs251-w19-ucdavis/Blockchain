@@ -86,9 +86,6 @@ class blockchain_platform(flask.views.MethodView):
         self.voter_pool.append(voter_info)
 
     def pick_voters(self):
-        """
-        
-        """
         # lock voter_pool before we pick voters
         voter_str = json.dumps(self.voter_pool)
         voter_json = json.loads(voter_str)
