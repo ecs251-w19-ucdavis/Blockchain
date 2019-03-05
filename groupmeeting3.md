@@ -5,7 +5,7 @@
 
 #### What we are going to do next week:
 - Finish voting part
-- Finish a complete blochchain 
+- Finish a complete blockchain 
 - Finish block mining
 - Accept input information from users from console instead of parametrs in url
 - Run a larger simulation
