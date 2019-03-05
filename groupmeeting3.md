@@ -5,9 +5,10 @@
 
 #### What we are going to do next week:
 - Finish voting part
-- Build a complete blochchain and run a larger simulation
+- Finish a complete blochchain 
 - Finish block mining
 - Accept input information from users from console instead of parametrs in url
+- Run a larger simulation
 
 #### Trello
 [https://trello.com/b/xvtDboDY/hybrid-consensus-for-blockchain](https://trello.com/b/xvtDboDY/hybrid-consensus-for-blockchain)
