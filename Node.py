@@ -64,14 +64,17 @@ class node(flask.views.MethodView):
                 #         print('has block')
                 #     else:
                 #         self.blockchain.append(content)
-
+            if action == 'add_neighbor':
+                neighbor = flask.request.args.get('neighbor')
+                self.neighbors.append(neighbor)
+                return 'Successfully add neighbor'
 
 
             if action == 'show_neighbors':
                 for neighbor in self.neighbors:
                     # print(neighbor)
                     neighbor = json.loads(neighbor)
-                    print('neighbor address ' + neighbor['address'])
+                    print('neighbor address ' + str(neighbor['address']))
                     print('-----')
                 return 'showing neighbors'
             if action == 'show_transactions':
@@ -86,7 +89,7 @@ class node(flask.views.MethodView):
         r = requests.get('http://127.0.0.1:8000/blockchain_platform', params=args)
         if r.status_code == 200:
             self.is_registered = True 
-            print(r.text)
+            # print(r.text)
             keys = json.loads(r.text)
             # self.keytup.append(self.keys['public_key'])
             # self.keytup.append(self.keys['private_key'])
@@ -98,6 +101,10 @@ class node(flask.views.MethodView):
             for neighbor in keys['neighbors']:
                 print(neighbor)
                 self.neighbors.append(neighbor)
+                neighbor = json.loads(neighbor)
+                print(neighbor['address'])
+                self.inform(neighbor['address'])
+                
             # print(self.neighbors)
             return r.text
 
@@ -136,7 +143,16 @@ class node(flask.views.MethodView):
             r = requests.get(url, params=args)
             print(r.text)
         return 'Making a transaction'
-    
+
+    def inform(self, address):
+        selfinfo = json.dumps({'address':app.config['port'],
+                                'public_key':self.private_key[0]
+                                })
+        args = {'action':'add_neighbor', 'neighbor':selfinfo}
+        url = 'http://127.0.0.1:' + address + '/node'
+        r = requests.get(url, params=args)
+        print (r.text)
+        return r.text
     # def shown_neighbour(self):
     #     str =''
     #     for neighbor in self.neigthbors:
