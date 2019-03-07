@@ -81,6 +81,16 @@ class node(flask.views.MethodView):
                 for tx in self.transaction_pool:
                     print(tx)
                 return str(self.transaction_pool)
+            
+            if action == 'start_mining':
+                tx = []
+                s = set()
+                tx_num = len(self.transaction_pool)
+                while len(s) < 10:
+                    s.add(random.randint(0,tx_num - 1))
+                for x in s:
+                    tx.append(self.transaction_pool[x])
+                self.mining(tx)
 
     def generate_key(self):
         ip_address = app.config['port']
