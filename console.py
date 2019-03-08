@@ -14,11 +14,12 @@ class console:
         else:
             print('Failed to register ' + str(self.address))
             return
-    def transfer(self, destination, amount):
-        args = {'action':'transfer', 'to_address':destination, 'amount': amount}
+            
+    def transfer(self, to_address, amount, fee):
+        args = {'action':'transfer', 'to_address':to_address, 'amount': amount, 'fee': fee}
         r = requests.get(self.url, params=args)
         if r.status_code == 200:
-            print('node ' + self.address + 'made a $' + str(amount) + ' transfer to ' + destination)
+            print('node ' + str(self.address) + 'made a $' + str(amount) + ' transfer to ' + to_address)
             return r.text
     
     # def 
