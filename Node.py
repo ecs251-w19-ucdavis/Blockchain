@@ -97,29 +97,6 @@ class node(flask.views.MethodView):
         return total_balance
 
 
-    # def pick_transactions(self):
-    #     tx_inds = []
-    #     while len(tx_inds) < 10:
-    #         tx_ind = random.randint(0,10)
-    #         if tx_ind not in tx_inds:
-    #             tx_inds.append(tx_ind)
-    #     tx_list = []
-    #     for tx_ind in tx_inds:
-    #         tx_list.append(self.transaction_pool[tx_ind])
-    #     return tx_list
-
-
-    # def add_vote(self, voter_info,N):
-    #     """
-    #     ptype: voter_info: json {'pk':pk, 'block':block, 'amount':amount, 
-    #             contains pk, the block the this voter voted for, and money he stakes
-    #     ptype: N: integer, the size of the network
-    #     preturn: a voting infor pool with more than 1/3 nodes' voting information
-    #     """
-    #     if len(self.voter_pool) >= 1/3 * N:
-    #         return False
-    #     self.voter_pool.append(voter_info)
-
     def add_tx_to_pool(self,tx_str):
         """
         when receive a new transaction json format from the net, 
@@ -184,7 +161,7 @@ class node(flask.views.MethodView):
 
         # dispatching the processing fee to miner by making a transaction with the priority to be mined
 
-        ## to be done here 
+        ## to be done here
 
         self.can_add_vote = True
 

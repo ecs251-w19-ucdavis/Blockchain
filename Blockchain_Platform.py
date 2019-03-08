@@ -16,7 +16,8 @@ class blockchain_platform(flask.views.MethodView):
     registered_users = []
     new_block_pool = []
     voter_pool = []
-    mining_difficulty = 2
+    address_list = []
+    mining_difficulty = [2]
     mining_reward = 50
     chain_creation_date = "02/10/2019"
     def get(self):
@@ -27,23 +28,33 @@ class blockchain_platform(flask.views.MethodView):
             print("action " + action)
             if action == 'register':
                 address = flask.request.args.get('address')
+                for user_info in self.registered_users:
+                    if address == json.loads(user_info)['address']:
+                        print(address + ' is already registered')
+                        print(user_info)
+                        return user_info
                 print(address)
                 pk, sk = self.generate_key()
                 neighbors = self.assign_nbrs()
                 user_info = json.dumps({'status':'success',
                                         'address':address,
-                                        'secretkey':sk,
-                                        'publickey':pk,
-                                        'neighbor':neighbors
+                                        'private_key':sk,
+                                        'public_key':pk,
+                                        'neighbors':neighbors
                                         })
                 new_node = json.dumps({'address':address,
-                                        'publickey':pk
+                                        'public_key':pk
                                         })
-                self.registered_users.append(new_node)
+                self.registered_users.append(user_info)
+                self.address_list.append(new_node)
                 return user_info
 
             if action == 'print':
-                return str(self.registered_users)
+                print(json.dumps(self.registered_users))
+                return json.dumps(self.registered_users)
+            if action == 'update_difficulty':
+                self.update_mining_difficulty(4)
+                return str(self.mining_difficulty[0])
         
 
     def create_genesis_block(self):
@@ -55,18 +66,34 @@ class blockchain_platform(flask.views.MethodView):
             self.mining_reward /= 2
 
     def update_mining_difficulty(self, new_difficulty):
-        self.mining_difficulty = new_difficulty
+        self.mining_difficulty[0] = new_difficulty
 
 
     def assign_nbrs(self):
-        if len(self.registered_users) == 0:
-            return 
-
+        l = []
+        user_num = len(self.address_list)
+        if user_num == 0:
+            return []
+        elif user_num <= 2:
+            return self.address_list
+        elif user_num < 10:
+            s = set()
+            n = user_num/3
+            while len(s) < n:
+                s.add(random.randint(0,user_num - 1))
+            for x in s:
+                l.append(self.address_list[x])
+            return l
+        else:
+            s = set()
+            n = random.randint(1, user_num/3)
+            while len(s) < n:
+                s.add(random.randint(0,user_num - 1))
+            for x in s:
+                l.append(self.address_list[x])
+            return l
+    
     def generate_key(self):
-        """
-        rtype: pk public key
-        rtype: sk secret key
-        """
         key = RSA.generate(2048) 
         pk = key.publickey().exportKey("PEM") 
         sk = key.exportKey("PEM") 

@@ -9,7 +9,8 @@ from Crypto.Hash import SHA256
 from Crypto.PublicKey import RSA
 
 class transaction:
-	def __init__(self, from_address, to_address, amount, fee,sk=0):
+
+	def __init__(self, from_address, to_address, amount, fee):
 		self.from_address = from_address
 		self.to_address = to_address
 		self.amount = amount
@@ -41,8 +42,6 @@ class transaction:
 					amount += tx.amount
 		if amount == self.amount:
 			is_amount_valid == True
-
-		# if both the digital signature and amount are valid, return True
 		if is_sign_valid and is_amount_valid:
 			return True
 
