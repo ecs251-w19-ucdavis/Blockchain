@@ -72,5 +72,6 @@ class transaction:
 		tx = json.dumps(self,default=lambda x: x.__dict__)
 		return tx
 
-
+	def __cmp__(self, other):
+        	return cmp(self.fee, other.fee)
 

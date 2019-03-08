@@ -13,24 +13,97 @@ from flask import redirect, request, views
 from flask import Response
 import json
 from Transaction import transaction
+import Queue
 
 client_port = 0
 class node(flask.views.MethodView):
     neigthbor = []
     ip_address = 0
-    public_key = ''
-    private_key = ''
+    public_key = []
+    private_key = []
     blockchain = []
     tx_pool = []
     vote_pool = []
     new_block_pool = []
     can_add_vote = True
+    
     def get(self):
         if request.method == 'GET':
             action = flask.request.args.get('action')
             if action == 'register':
                 keys = self.generate_key()
                 return keys
+
+            if action == 'getkeys':
+                print('getting keys')
+                if self.public_key == []:
+                    return 'no keys'
+                else:
+                    print('ipaddress' + str(app.config['port']))
+                    return self.public_key[0]
+
+            if action == 'transfer':
+                from_address = self.ip_address
+                to_address = flask.request.args.get('to_address')
+                amount = flask.request.args.get('amount')
+                new_tx = transaction(app.config['port'], to_address, amount)
+                self.tx_pool.append(str(new_tx))
+                self.transfer(str(new_tx))
+                print('called transfer')
+                return str(new_tx)
+                # self.transfer(new_tx)
+
+
+            if action == 'gossip_transaction':
+                content = flask.request.args.get('content')
+                if content in self.tx_pool:
+                    print('Already has that transaction')
+                    return 'Already has that transaction'
+                else:
+                    self.tx_pool.append(content)
+                    self.transfer(content)
+                    print(content + ' has been added to the transaction pool. Sending it to neighbors')
+
+
+
+                    return content + ' has been added to the transaction pool. Sending it to neighbors'
+                # if item == 'block':
+                #     if content in self.blockchain:
+                #         print('has block')
+                #     else:
+                #         self.blockchain.append(content)
+            
+            if action == 'add_neighbor':
+                neighbor = flask.request.args.get('neighbor')
+                self.neighbors.append(neighbor)
+                return 'Successfully add neighbor'
+
+            if action == 'show_neighbors':
+                for neighbor in self.neighbors:
+                    # print(neighbor)
+                    neighbor = json.loads(neighbor)
+                    print('neighbor address ' + str(neighbor['address']))
+                    print('-----')
+                return 'showing neighbors'
+                
+            if action == 'show_transactions':
+                for tx in self.tx_pool:
+                    print(tx)
+                return str(self.tx_pool)
+            
+            if action == 'start_mining':
+                tx = []
+                s = set()
+                tx_num = len(self.tx_pool)
+                while len(s) < 10:
+                    s.add(random.randint(0,tx_num - 1))
+                for x in s:
+                    tx.append(self.tx_pool[x])
+                self.mining(tx)
+            
+            # if action == 'counting':
+            #     while(1):
+            #         print('hehe')
 
     def generate_key(self):
         self.ip_address = app.config['port']
@@ -53,7 +126,7 @@ class node(flask.views.MethodView):
         sorted_tx = sorted(tx_dict.item(), lambda x: x[0],reverse = True)
         txs_sign = sorted_tx[:10][0]
         transactions = []
-        for tx in tx_pool:
+        for tx in self.tx_pool:
             if tx.signature in txs_sign:
                 transactions.append(tx)
         #####################################
@@ -102,9 +175,10 @@ class node(flask.views.MethodView):
         build a transaction object and add it to the local tx_pool
         # using priority queeue
         """
+        q = Queue.PriorityQueue()
         tx_json = json.loads(tx_str)
-        tx = transaction(tx_json["from_address"],tx_json["to_address"],tx_json["amount"],tx_json["fee"])
-        tx_pool.append(tx)
+        tx = transaction(tx_json["from_address"], tx_json["to_address"], tx_json["amount"], tx_json["fee"])
+        self.tx_pool.append(tx)
 
     def add_block_pool(self, newblock):
         """
@@ -113,23 +187,6 @@ class node(flask.views.MethodView):
         newblock = json.loads(newblock)
         new_block = block(newblock["difficulty"], newblock["time_stamp"], newblock["transactions"], newblock["prev_hash"], newblock["Nonce"])
         self.new_block_pool.append(new_block)
-
-
-
-
-    def leader(self):
-
-        return True
-
-
-        
-
-class vote:
-    def __init__(self, from_address, blockhash, stake ):
-        self.from_address = from_address
-        self.blockhash = blockhash
-        self.stake = stake
-
 
 def create_app(client_port):
     app = Flask(__name__) #create the application instance

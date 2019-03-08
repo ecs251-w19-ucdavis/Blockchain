@@ -1,5 +1,11 @@
 
 
+class vote:
+    def __init__(self, from_address, blockhash, stake ):
+        self.from_address = from_address
+        self.blockhash = blockhash
+        self.stake = stake
+
 class consutil
 	def add_vote_pool(self,vote_info):
         """

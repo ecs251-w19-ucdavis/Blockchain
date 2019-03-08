@@ -1,5 +1,6 @@
 from console import *
 from Transaction import *
+import Queue
 if __name__ == "__main__":
     # nodeone = node()
     # newblock = utils.create_genesis_block()
@@ -11,10 +12,19 @@ if __name__ == "__main__":
     # print("--- %s seconds ---" % (time.time() - start_time))
     # print(blocktwo)
     # print(blocktwo.calculate_hash())
-    console(8001).register()
-    console(8002).register()
-    console(8003).register()
-    console(8004).register()
+    # console(8001).register()
+    # console(8002).register()
+    # console(8003).register()
+    # console(8004).register()
     # console(8005).register()
     # tx = transaction('1','1',10, '1')
     # print(tx)
+    q = Queue.PriorityQueue()
+    tx1 = transaction('1','2',10, 2)
+    tx2 = transaction('2','1',10, 1)
+    print(tx1)
+    print(tx2)
+    q.put(tx1)
+    q.put(tx2)
+    while not q.empty():
+	    print q.get()
