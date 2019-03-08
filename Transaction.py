@@ -4,23 +4,23 @@
 import Queue
 import time
 import json
+import hashlib
 from Crypto.Hash import SHA256
 from Crypto.PublicKey import RSA
 
 class transaction:
-	def __init__(self, from_address, to_address, amount, sk):
+	def __init__(self, from_address, to_address, amount, fee,sk=0):
 		self.from_address = from_address
 		self.to_address = to_address
 		self.amount = amount
 		self.timestamp = time.time()
+		self.fee = fee
 
-
-	def isvalid(self,my_sign):
+	def isvalid(self, blockchain):
 		'''
 		arg: signed message
 		return: are the signature and the amount valid
 		'''
-
 		# check if the sign is valid
 		is_sign_valid = False
 		is_amount_valid = False
@@ -28,26 +28,26 @@ class transaction:
 		msg_hash = SHA256.new()
 		msg_hash.update(msg)
 		verify = PKCS1_PSS.new(self.from_address)
-		if verify(msg_hash,my_sign):
+		if verify(msg_hash,self.my_sign):
 			is_sign_valid = True
 
 		# check if the amount is less than the money of the from_adress
+		amount = 0
+		for block in blockchain:
+			for tx in block:
+				if tx.from_address == self.from_address:
+					amount -= tx.amount
+				elif tx.from_address == self.to_address:
+					amount += tx.amount
+		if amount == self.amount:
+			is_amount_valid == True
 
-
-		if :
-			is_amount_valid = True
-
-
+		# if both the digital signature and amount are valid, return True
 		if is_sign_valid and is_amount_valid:
 			return True
 
 		return False
 
-
-	# def create_transaction_pool(self):
-	# 	# Initialize a global Queue
-	# 	transaction_pool = Queue.Queue(maxsize = 0)
-	# 	return transaction_pool
 
 
 	def sign(self,sk):

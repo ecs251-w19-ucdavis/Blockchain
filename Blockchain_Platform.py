@@ -57,41 +57,6 @@ class blockchain_platform(flask.views.MethodView):
     def update_mining_difficulty(self, new_difficulty):
         self.mining_difficulty = new_difficulty
 
-    def pick_transactions(self):
-        tx_inds = []
-        while len(tx_inds) < 10:
-            tx_ind = random.randint(0,10)
-            if tx_ind not in tx_inds:
-                tx_inds.append(tx_ind)
-        tx_list = []
-        for tx_ind in tx_inds:
-            tx_list.append(self.transaction_pool[tx_ind])
-        return tx_list
-
-
-    def add_voters(self, voter_info):
-        if len(self.voter_pool) >= 100:
-            return False
-        self.voter_pool.append(voter_info)
-
-    def pick_voters(self):
-        """
-        
-        """
-        # lock voter_pool before we pick voters
-        voter_str = json.dumps(self.voter_pool)
-        voter_json = json.loads(voter_str)
-        total = 0
-        for voter in voter_json:
-            total += voter_json[voter]
-        voter_prob = []
-        for voter in voter_json:
-            voter_prob.append(voter_json[voter]/total)
-        index = np.arange(len(self.voter_pool))
-        voter_cdd_index = np.random.choice(index, p = voter_prob, size = 10, replace = True)
-        voters_cdd = self.voter_pool[voter_cdd_index]
-        return voters_cdd
-
 
     def assign_nbrs(self):
         if len(self.registered_users) == 0:
