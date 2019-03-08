@@ -48,7 +48,7 @@ class node(flask.views.MethodView):
         # digital signature is unique for different transactions
         # select 15 randomly , then pick 10 with most fee
         tx_dict = {}
-        for item in tx_pool:
+        for item in self.tx_pool:
             tx_dict[item.signature] = item.fee
         sorted_tx = sorted(tx_dict.item(), lambda x: x[0],reverse = True)
         txs_sign = sorted_tx[:10][0]
