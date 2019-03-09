@@ -14,6 +14,7 @@ from flask import Response
 import json
 from Transaction import transaction
 import Queue
+import random
 
 client_port = 0
 class node(flask.views.MethodView):
@@ -25,13 +26,15 @@ class node(flask.views.MethodView):
     tx_pool = []
     vote_pool = []
     new_block_pool = []
-    can_add_vote = True
+    state = [None]
     
     def get(self):
         if request.method == 'GET':
             action = flask.request.args.get('action')
             if action == 'register':
-                keys = self.generate_key()
+                keys = self.register()
+                self.blockchain.append(self.get_firstblock())
+
                 return keys
 
             if action == 'getkeys':
@@ -45,29 +48,30 @@ class node(flask.views.MethodView):
             if action == 'transfer':
                 from_address = self.ip_address
                 to_address = flask.request.args.get('to_address')
+                timestamp = time.time()
                 amount = flask.request.args.get('amount')
                 fee = flask.request.args.get('fee')
-                new_tx = transaction(app.config['port'], to_address, amount, fee)
-                self.tx_pool.append(new_tx)
+                new_tx = transaction(timestamp, app.config['port'], to_address, amount, fee)
+                self.tx_pool.append(str(new_tx))
                 self.transfer(str(new_tx))
                 print('called transfer')
                 return str(new_tx)
-                # self.transfer(new_tx)
 
 
             if action == 'gossip_transaction':
-                tx_str = flask.request.args.get('transaction')
-                tx_json = json.loads(tx_str)
-                tx = transaction(tx_json["from_address"], tx_json["to_address"], tx_json["amount"], tx_json["fee"])
+                tx = flask.request.args.get('transaction')
+                # tx_json = json.loads(tx_str)
+                # tx = transaction(tx_json["timestamp"], tx_json["from_address"], tx_json["to_address"], tx_json["amount"], tx_json["fee"])
                 if tx in self.tx_pool:
                     print('Already has that transaction')
                     return 'Already has that transaction'
                 else:
-                    self.tx_pool.append(tx)
+                    self.tx_pool.append(str(tx))
                     self.transfer(str(tx))
-                    print(str(tx) + ' has been added to the transaction pool. Sending it to neighbors')
-                    return str(tx) + ' has been added to the transaction pool. Sending it to neighbors'
-            
+                    print(tx + ' has been added to the transaction pool. Sending it to neighbors')
+                    return tx + ' has been added to the transaction pool. Sending it to neighbors'
+            if action == 'gossip_blcok':
+                
             if action == 'add_neighbor':
                 neighbor = flask.request.args.get('neighbor')
                 self.neighbors.append(neighbor)
@@ -84,19 +88,18 @@ class node(flask.views.MethodView):
             if action == 'show_transactions':
                 for tx in self.tx_pool:
                     print(tx)
-                return str(self.tx_pool)
+                return json.dumps(self.tx_pool)
             
             if action == 'start_mining':
-                tx = []
-                s = set()
-                tx_num = len(self.tx_pool)
-                while len(s) < 10:
-                    s.add(random.randint(0,tx_num - 1))
-                for x in s:
-                    tx.append(self.tx_pool[x])
-                self.mining(tx)
+                result = self.mining()
+                return result
+            
+            if action == 'show_blocks':
+                for block in self.blockchain:
+                    print(block)
+                return json.dumps(self.blockchain)
 
-    def generate_key(self):
+    def register(self):
         self.ip_address = app.config['port']
         # print('ip_address is ' + str(self.ip_address))
         args = {'action':'register', 'address':self.ip_address}
@@ -112,36 +115,45 @@ class node(flask.views.MethodView):
                 neighbor = json.loads(neighbor)
                 print(neighbor['address'])
                 self.inform(neighbor['address'])
-                
-            # print(self.neighbors)
             return r.text
 
     def mining(self):
         """
         Mining a new block and broadcast it to all users 
         """
+
+        print('starting to mining')
         # pick 10 transactions from local transaction pool based on the fee
         # digital signature is unique for different transactions
         # select 15 randomly , then pick 10 with most fee
-        tx_dict = {}
-        for item in self.tx_pool:
-            tx_dict[item.signature] = item.fee
-        sorted_tx = sorted(tx_dict.item(), lambda x: x[0],reverse = True)
-        txs_sign = sorted_tx[:10][0]
         transactions = []
-        for tx in self.tx_pool:
-            if tx.signature in txs_sign:
-                transactions.append(tx)
+        q = Queue.PriorityQueue()
+        s = set()
+        while len(s) < 6:
+            s.add(random.randint(0,len(self.tx_pool) - 1))
+        for x in s:
+            q.put(self.tx_pool[x])
+        while(len(transactions) < 5):
+            transactions.append(q.get())
+
+        
+
+        # txs_sign = sorted_tx[:10][0]
+        # transactions = []
+        # for tx in self.tx_pool:
+        #     if tx.signature in txs_sign:
+        #         transactions.append(tx)
         #####################################
 
-        difficulty = utils.get_difficulty()
+        difficulty = self.get_difficulty()
+        print(difficulty)
         leading_zeros = ''
         leading_zeros = leading_zeros.rjust(difficulty, '0')
         nonce = 0
         print leading_zeros
         print difficulty
         time_stamp = time.time()
-        prev_hash = self.blockchain[-1].calculate_hash()
+        prev_hash =self.block_json_to_obj(self.blockchain[-1]).calculate_hash()
         print(prev_hash)
         newblock = block(difficulty, time_stamp, transactions, prev_hash, nonce)
         hash_val = newblock.calculate_hash()
@@ -153,7 +165,7 @@ class node(flask.views.MethodView):
             hash_val = newblock.calculate_hash()
             bin_hash_val = ( bin(int(hash_val, 16))[2:] ).zfill(256)
         print(bin_hash_val)
-        return newblock
+        return str(newblock)
         
 
     def transfer(self, new_tx):
@@ -188,25 +200,31 @@ class node(flask.views.MethodView):
                     total_balance += transaction.amount
         return total_balance
 
+    def get_difficulty(self):
+        args = {'action':'get_difficulty'}
+        url = 'http://127.0.0.1:8000/blockchain_platform'
+        r = requests.get(url, params=args)
+        return int(r.text)
+    
+    def get_firstblock(self, ):
+        args = {'action':'get_firstblock'}
+        url = 'http://127.0.0.1:8000/blockchain_platform'
+        r = requests.get(url, params=args)
+        return r.text
 
-    # def add_tx_to_pool(self, tx_str):
-    #     """
-    #     when receive a new transaction json format from the net, 
-    #     build a transaction object and add it to the local tx_pool
-    #     # using priority queeue
-    #     """
-    #     # q = Queue.PriorityQueue()
-    #     tx_json = json.loads(tx_str)
-    #     tx = transaction(tx_json["from_address"], tx_json["to_address"], tx_json["amount"], tx_json["fee"])
-    #     self.tx_pool.append(tx)
 
-    def add_block_pool(self, newblock):
+    def tx_json_to_obj(self, tx_str):
+        tx_json = json.loads(tx_str)
+        tx = transaction(tx_json["from_address"], tx_json["to_address"], tx_json["amount"], tx_json["fee"])
+        return tx
+
+    def block_json_to_obj(self, newblock):
         """
         receive a new block from the net and create a new block object before add it to the block_pool
         """
         newblock = json.loads(newblock)
         new_block = block(newblock["difficulty"], newblock["time_stamp"], newblock["transactions"], newblock["prev_hash"], newblock["Nonce"])
-        self.new_block_pool.append(new_block)
+        return new_block
 
 def create_app(client_port):
     app = Flask(__name__) #create the application instance

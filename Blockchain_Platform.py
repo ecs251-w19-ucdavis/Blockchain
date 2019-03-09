@@ -55,7 +55,13 @@ class blockchain_platform(flask.views.MethodView):
             if action == 'update_difficulty':
                 self.update_mining_difficulty(4)
                 return str(self.mining_difficulty[0])
-        
+
+            if action == 'get_difficulty':
+                print(self.mining_difficulty[0])
+                return str(self.mining_difficulty[0])
+
+            if action == 'get_firstblock':
+                return str(self.create_genesis_block())
 
     def create_genesis_block(self):
         creation_date = time.mktime(datetime.datetime.strptime(self.chain_creation_date, "%d/%m/%Y").timetuple())

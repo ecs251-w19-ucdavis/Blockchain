@@ -10,11 +10,11 @@ from Crypto.PublicKey import RSA
 
 class transaction:
 
-	def __init__(self, from_address, to_address, amount, fee):
+	def __init__(self, timestamp, from_address, to_address, amount, fee):
 		self.from_address = from_address
 		self.to_address = to_address
 		self.amount = amount
-		self.timestamp = time.time()
+		self.timestamp = timestamp
 		self.fee = fee
 
 	def isvalid(self, blockchain):
