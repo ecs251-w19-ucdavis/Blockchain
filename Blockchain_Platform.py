@@ -17,7 +17,7 @@ class blockchain_platform(flask.views.MethodView):
     new_block_pool = []
     voter_pool = []
     address_list = []
-    mining_difficulty = [2]
+    mining_difficulty = [15]
     mining_reward = 50
     chain_creation_date = "02/10/2019"
     def get(self):
