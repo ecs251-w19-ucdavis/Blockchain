@@ -106,6 +106,7 @@ class node(flask.views.MethodView):
                     res = str(block) + ' has been added to the blockchain of '+ str(app.config['port']) + ' Sending it to neighbors'
                     print(res)
                     self.add_block(str(block))
+                    self.new_block_pool = []
                     return res
 
             if action == 'request_vote':
@@ -131,6 +132,8 @@ class node(flask.views.MethodView):
                     for blockinfo in self.new_block_pool:
                         block = self.block_json_to_obj(json.loads(blockinfo)['block'])
                         if block.calculate_hash() == blockhash:
+                            self.blockchain.append(str(block))
+                            self.new_block_pool = []
                             self.add_block(str(block))
                 return v
 
@@ -280,7 +283,7 @@ class node(flask.views.MethodView):
             neighbor = json.loads(neighbor)
             url = 'http://127.0.0.1:' + str(neighbor['address']) + '/node'
             r = requests.get(url, params=args)
-        return 'Gossip an elected block'
+        return r.status_code
 
     def inform_neighbor(self, address):
         selfinfo = json.dumps({'address':app.config['port'],
