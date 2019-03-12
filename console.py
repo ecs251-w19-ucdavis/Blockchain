@@ -22,3 +22,13 @@ class console:
         if r.status_code == 200:
             print('node ' + str(self.address) + ' made a $' + str(amount) + ' transfer to ' + to_address)
             return r.text
+    
+    def mine(self):
+        args = {'action':'start_mining'}
+        r = requests.get(self.url, params=args)
+        if r.status_code == 200:
+            print('node ' + str(self.address) + ' mined a block')
+            return r.text
+        else:
+            print('node ' + str(self.address) + ' failed to mine a block')
+            return r.text

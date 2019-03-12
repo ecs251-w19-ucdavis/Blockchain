@@ -15,6 +15,7 @@ from Transaction import transaction
 import Queue
 import random
 import threading 
+from consutil import *
 
 client_port = 0
 class node(flask.views.MethodView):
@@ -27,8 +28,7 @@ class node(flask.views.MethodView):
     vote_pool = []
     new_block_pool = []
     state = [None]
-    term = [0]
-    lock = threading.Lock()
+    leader = [None]
     def get(self):
         if request.method == 'GET':
             action = flask.request.args.get('action')
@@ -58,7 +58,6 @@ class node(flask.views.MethodView):
                 print('called transfer')
                 return str(new_tx)
 
-
             if action == 'gossip_transaction':
                 tx = flask.request.args.get('transaction')
                 # tx_json = json.loads(tx_str)
@@ -85,27 +84,49 @@ class node(flask.views.MethodView):
                     return 'Already has that block'
                 else:
                     self.new_block_pool.append(str(blockinfo))
-                    self.transfer(str(blockinfo))
-                    print(blockinfo + ' has been added to the transaction pool. Sending it to neighbors')
+                    self.gossip_block(str(blockinfo))
+                    if len(self.new_block_pool) == 3:
+                        t = sys.maxint
+                        for blockinfo in self.new_block_pool:
+                            block = self.block_json_to_obj(json.loads(blockinfo)['block'])
+                            if block.time_stamp < t:
+                                t = block.time_stamp
+                                address = json.loads(blockinfo)['address']
+                                print(address)
+                        if address == app.config['port']:
+                            print(str(app.config['port']) + ' is the leader')
+                            self.leader[0] = app.config['port']
+                            self.announce_leader(app.config['port'])
+                    # print(blockinfo + ' has been added to the transaction pool. Sending it to neighbors')
                     return blockinfo + ' has been added to the transaction pool. Sending it to neighbors'
+
+            if action == 'request_vote':
+                leader_address = flask.request.args.get('leader')
+                self.leader[0] = leader_address
+                if self.state[0] == 'voted':
+                    print("Already voted")
+                    return "Already voted"
+                else:
+                    self.state[0] = 'voted'
+                    self.vote(leader_address)
+                    print("voting to " + leader_address)
+                    self.announce_leader(leader_address)
+                    return "voted"
+
+            if action == 'send_vote':
+                v = flask.request.args.get('vote')
+                print('sending vote')
+                self.vote_pool.append(v)
+                return v
+
+
 
             if action == 'add_neighbor':
                 neighbor = flask.request.args.get('neighbor')
                 self.neighbors.append(neighbor)
                 return 'Successfully add neighbor'
 
-            if action == 'show_neighbors':
-                neighbors = ''
-                for neighbor in self.neighbors:
-                    # print(neighbor)
-                    neighbor = json.loads(neighbor)
-                    neighbors += ('neighbor address ' + str(neighbor['address']) +'\n')
-                return neighbors
-                
-            if action == 'show_transactions':
-                for tx in self.tx_pool:
-                    print(tx)
-                return json.dumps(self.tx_pool)
+            
             
             if action == 'start_mining':
                 new_block = self.mining()
@@ -123,22 +144,30 @@ class node(flask.views.MethodView):
                 return str(new_block)
             
             if action == 'show_blocks':
+                blocks = []
                 for block in self.new_block_pool:
-                    print(block)
-                return json.dumps(self.new_block_pool)
+                    block = json.loads(block)['block']
+                    blocks.append(block)
+                return json.dumps(blocks)
 
-            # if action == 'request_follower':
-            #     address = flask.request.args.get('address')
-            #     requester_term = flask.request.args.get('term')
-            #         # self.lock.acquire()
-            #     if self.term[0] > requester_term:
-            #         res = json.dumps({'status':'failed',
-            #                             'reason':'rotten term'
-            #                             })
-            #     elif 
-            #     print(str(self.term[0]) +' ' + address)
-            #         # self.lock.release()
-            #     return 'requesting follower'
+            if action == 'show_neighbors':
+                neighbors = ''
+                for neighbor in self.neighbors:
+                    # print(neighbor)
+                    neighbor = json.loads(neighbor)
+                    neighbors += ('neighbor address ' + str(neighbor['address']) +'\n')
+                return neighbors
+                
+            if action == 'show_transactions':
+                # for tx in self.tx_pool:
+                #     print(tx)
+                return json.dumps(self.tx_pool)
+
+            if action == 'show_votes':
+                return json.dumps(self.vote_pool)
+            
+            if action == 'show_leader':
+                return self.leader[0]
 
     def register(self):
         self.ip_address = app.config['port']
@@ -151,10 +180,10 @@ class node(flask.views.MethodView):
             self.private_key[0] = keys['private_key']
             # print('this is private key' + self.private_key[0])
             for neighbor in keys['neighbors']:
-                print(neighbor)
+                # print(neighbor)
                 self.neighbors.append(neighbor)
                 neighbor = json.loads(neighbor)
-                print(neighbor['address'])
+                # print(neighbor['address'])
                 self.inform(neighbor['address'])
             return r.text
 
@@ -176,16 +205,6 @@ class node(flask.views.MethodView):
             q.put(self.tx_pool[x])
         while(len(transactions) < 5):
             transactions.append(q.get())
-
-        
-
-        # txs_sign = sorted_tx[:10][0]
-        # transactions = []
-        # for tx in self.tx_pool:
-        #     if tx.signature in txs_sign:
-        #         transactions.append(tx)
-        #####################################
-
         difficulty = self.get_difficulty()
         print(difficulty)
         leading_zeros = ''
@@ -202,7 +221,7 @@ class node(flask.views.MethodView):
         print(bin_hash_val[:difficulty])
         while bin_hash_val[:difficulty] != leading_zeros:
             nonce += 1
-            newblock = block(difficulty, time_stamp, transactions, prev_hash, nonce)
+            newblock = block(difficulty, time.time(), transactions, prev_hash, nonce)
             hash_val = newblock.calculate_hash()
             bin_hash_val = (bin(int(hash_val, 16))[2:] ).zfill(256)
         print(bin_hash_val)
@@ -210,11 +229,11 @@ class node(flask.views.MethodView):
         
 
     def transfer(self, new_tx):
+        args = {'action':'gossip_transaction', 'transaction':new_tx}
         for neighbor in self.neighbors:
             print('neighbor')
             neighbor = json.loads(neighbor)
             print('neighbor address ' + str(neighbor['address']))
-            args = {'action':'gossip_transaction', 'transaction':new_tx}
             url = 'http://127.0.0.1:' + str(neighbor['address']) + '/node'
             print('trying to gossip transaction ' + url)
             r = requests.get(url, params=args)
@@ -222,15 +241,41 @@ class node(flask.views.MethodView):
         return 'Making a transaction'
 
     def gossip_block(self, block):
+        args = {'action':'gossip_block', 'block': block}
         for neighbor in self.neighbors:
             neighbor = json.loads(neighbor)
-            print('Neighbor address ' + str(neighbor['address']))
-            args = {'action':'gossip_block', 'block': block}
+            # print('Neighbor address ' + str(neighbor['address']))
             url = 'http://127.0.0.1:' + str(neighbor['address']) + '/node'
             print('Trying to gossip block ' + url)
             r = requests.get(url, params=args)
-            print(r.text)
+            # print(r.text)
         return 'Gossip a block'
+
+    def announce_leader(self, address):
+        args = {'action':'request_vote', 'leader': address}
+        for neighbor in self.neighbors:
+            neighbor = json.loads(neighbor)
+            # print('Neighbor address ' + str(neighbor['address']))
+            url = 'http://127.0.0.1:' + str(neighbor['address']) + '/node'
+            print('Requesting vote from ' + str(neighbor['address']))
+            r = requests.get(url, params=args)
+            # print(r.text)
+        return 'Announcing leader, collecting votes'
+
+    def vote(self, leader):
+        balance = self.get_balance()
+        if balance > 500:
+            stake = round(random.uniform(0, 500), 2)
+        else:
+            stake = round(random.uniform(0, balance), 2)
+        rand_block = json.loads(self.new_block_pool[random.randint(0,len(self.new_block_pool) - 1)])['block']
+        block_hash = self.block_json_to_obj(rand_block).calculate_hash()
+        v = vote(app.config['port'], block_hash, stake)
+        args = {'action':'send_vote', 'vote': str(v)}
+        url = 'http://127.0.0.1:' + leader + '/node'
+        print('sending vote to leader ' + leader)
+        r = requests.get(url, params=args)
+        return
 
     def inform(self, address):
         selfinfo = json.dumps({'address':app.config['port'],
@@ -239,12 +284,13 @@ class node(flask.views.MethodView):
         args = {'action':'add_neighbor', 'neighbor':selfinfo}
         url = 'http://127.0.0.1:' + address + '/node'
         r = requests.get(url, params=args)
-        print (r.text)
+        # print (r.text)
         return r.text
 
     def get_balance(self):
-        total_balance = 0
+        total_balance = 2000
         for block in self.blockchain:
+            block = self.block_json_to_obj(block)
             for transaction in block.transactions:
                 if transaction.from_address == self.public_key[0]:
                     total_balance -= transaction.amount

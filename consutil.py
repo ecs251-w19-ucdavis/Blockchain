@@ -1,16 +1,18 @@
 
-
+import json
 class vote:
     def __init__(self, from_address, blockhash, stake ):
         self.from_address = from_address
         self.blockhash = blockhash
         self.stake = stake
 
-class consutil
-	def add_vote_pool(self,vote_info):
-        """
-        type: votes_info json str '{"voter":pk of voter,"blockhash":blockhash,"stake":staked money}'
-        """
+    def __str__(self):
+        vote_str = json.dumps(self, default=lambda o: o.__dict__)
+        # print(test_str)
+        return vote_str
+
+class consutil:
+    def add_vote_pool(self,vote_info):
         if self.can_add_vote: 
             vote_json = json.loads(vote_info)
             new_vote = vote(vote_json["blockhash"],vote_json["stake"])
@@ -18,12 +20,6 @@ class consutil
 
 
     def vote_sum(self):
-        """
-        - If this node is selected as the leader, then it use this function to summarize the votes.
-        - check stake money is valid for each voter
-        - manage stake fee and transaction processing fee (give the processing fee to miner)
-        """
-
         self.can_add_vote = False # lock the vote_pool 
 
         # check if each stake is valid, if not, discard the invalid votes
@@ -43,13 +39,6 @@ class consutil
 
         sorted_voted_blocks = sorted(vote_blocks.items(), lambda x: x[1], reverse = True)
         final_block = sorted_voted_blocks[0] 
-        # final_block = (blockhash, total stake for this block)
-        # broadcast the final block to the net and let other node add this block to their chain
-
-        # dispatching the processing fee to miner by making a transaction with the priority to be mined
-
-        ## to be done here
-
         self.can_add_vote = True
 
         return final_block	
