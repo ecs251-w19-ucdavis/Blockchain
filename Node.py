@@ -103,7 +103,7 @@ class node(flask.views.MethodView):
                     return 'Block prev_hash not valid'
                 else:
                     self.blockchain.append(str(block))
-                    res = block + ' has been added to the blockchain of '+ str(app.config['port']) + ' Sending it to neighbors'
+                    res = str(block) + ' has been added to the blockchain of '+ str(app.config['port']) + ' Sending it to neighbors'
                     print(res)
                     self.add_block(str(block))
                     return res
@@ -125,6 +125,13 @@ class node(flask.views.MethodView):
                 v = flask.request.args.get('vote')
                 print('sending vote')
                 self.vote_pool.append(v)
+                if len(self.vote_pool) == 4:
+                    blockhash = consutil.vote_sum(self.vote_pool)
+                    print(blockhash)
+                    for blockinfo in self.new_block_pool:
+                        block = self.block_json_to_obj(json.loads(blockinfo)['block'])
+                        if block.calculate_hash() == blockhash:
+                            self.add_block(str(block))
                 return v
 
             if action == 'add_neighbor':
@@ -151,6 +158,9 @@ class node(flask.views.MethodView):
                     block = json.loads(block)['block']
                     blocks.append(block)
                 return json.dumps(blocks)
+
+            if action == 'show_blockchain':
+                return json.dumps(self.blockchain)
 
             if action == 'show_neighbors':
                 neighbors = ''
