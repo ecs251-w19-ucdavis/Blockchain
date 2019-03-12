@@ -1,5 +1,6 @@
 
 import json
+import math
 class vote:
     def __init__(self, from_address, blockhash, stake ):
         self.from_address = from_address
@@ -12,33 +13,58 @@ class vote:
         return vote_str
 
 class consutil:
-    def add_vote_pool(self,vote_info):
-        if self.can_add_vote: 
-            vote_json = json.loads(vote_info)
-            new_vote = vote(vote_json["blockhash"],vote_json["stake"])
-            self.vote_pool.append(new_vote)
+    @staticmethod
+    def vote_json_to_obj(vote_list):
+        """
+        type: list of json string
+        rtype: list of vote object 
+        """
+        obj_list = []
+        for voter in vote_list:
+            vote_json = json.loads(voter)
+            obj_list.append(vote(from_address = vote_json["from_address"], blockhash = vote_json["blockhash"], stake = vote_json["stake"]))
+        return obj_list
 
+    @staticmethod
+    def vote_sum(raw_vote_list):
 
-    def vote_sum(self):
-        self.can_add_vote = False # lock the vote_pool 
+        vote_list = consutil.vote_json_to_obj(raw_vote_list)
 
-        # check if each stake is valid, if not, discard the invalid votes
-        valid_votes = []
-        for voter in self.vote_pool:
-            #voter_prob.append(voter.stake/total)
-            voter_balance = self.get_balance(voter.from_address)
-            if voter.stake <= voter_balance:
-                valid_votes.append(voter)
+        nums = len(vote_list)
+        vote_list.sort(key = lambda x : x.stake, reverse = True)
+        low, high = math.floor(nums*0.682), math.floor(nums*0.954) 
+        for i in range(nums):
+            if i <= low:
+                vote_list[i].stake = 1
+            elif i > low and i <= high:
+                vote_list[i].stake = 2.5
+            else:
+                vote_list[i].stake = 14.8
+
 
         vote_blocks = {}
-        for voter in valid_votes:
+        for voter in vote_list:
             if voter.blockhash in vote_blocks:
                 vote_blocks[voter.blockhash] += voter.stake
             else:
                 vote_blocks[voter.blockhash] = voter.stake
 
-        sorted_voted_blocks = sorted(vote_blocks.items(), lambda x: x[1], reverse = True)
-        final_block = sorted_voted_blocks[0] 
-        self.can_add_vote = True
+        sorted_voted_blocks = sorted(vote_blocks.items(), key = lambda x: x[1], reverse = True)
 
-        return final_block	
+        final_block_hash = sorted_voted_blocks[0][0] 
+
+        return final_block_hash
+
+# if __name__ == "__main__":
+#     json_list = ['{"stake": 1500, "from_address": 8002, "blockhash": "1001a5c16393ac8a682c4150a142edc0807f67a58c2d46c4f77ae538ec417638"}',
+#     '{"stake": 1000, "from_address": 8001, "blockhash": "2001a5c16393ac8a682c4150a142edc0807f67a58c2d46c4f77ae538ec417638"}',
+#     '{"stake": 300, "from_address": 8003, "blockhash": "0001a5c16393ac8a682c4150a142edc0807f67a58c2d46c4f77ae538ec417638"}',
+#     '{"stake": 300, "from_address": 8004, "blockhash": "0001a5c16393ac8a682c4150a142edc0807f67a58c2d46c4f77ae538ec417638"}',
+#     '{"stake": 100, "from_address": 8001, "blockhash": "2001a5c16393ac8a682c4150a142edc0807f67a58c2d46c4f77ae538ec417638"}',
+#     '{"stake": 300, "from_address": 8003, "blockhash": "0001a5c16393ac8a682c4150a142edc0807f67a58c2d46c4f77ae538ec417638"}',
+#     '{"stake": 300, "from_address": 8004, "blockhash": "0001a5c16393ac8a682c4150a142edc0807f67a58c2d46c4f77ae538ec417638"}' ]
+#     #print(json_list)
+#     final_block_hash = consutil.vote_sum(json_list)
+#     print(final_block_hash)
+
+
