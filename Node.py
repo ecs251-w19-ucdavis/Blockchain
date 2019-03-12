@@ -35,7 +35,6 @@ class node(flask.views.MethodView):
             if action == 'register':
                 keys = self.register()
                 self.blockchain.append(self.get_firstblock())
-
                 return keys
 
             if action == 'getkeys':
@@ -60,8 +59,6 @@ class node(flask.views.MethodView):
 
             if action == 'gossip_transaction':
                 tx = flask.request.args.get('transaction')
-                # tx_json = json.loads(tx_str)
-                # tx = transaction(tx_json["timestamp"], tx_json["from_address"], tx_json["to_address"], tx_json["amount"], tx_json["fee"])
                 if tx in self.tx_pool:
                     print('Already has that transaction')
                     return 'Already has that transaction'
@@ -78,7 +75,6 @@ class node(flask.views.MethodView):
                 if self.block_json_to_obj(self.blockchain[-1]).calculate_hash() != block_obj.prev_hash:
                     print('Block prev_hash not valid')
                     return 'Block prev_hash not valid'
-                # tx = transaction(tx_json["timestamp"], tx_json["from_address"], tx_json["to_address"], tx_json["amount"], tx_json["fee"])
                 if blockinfo in self.new_block_pool:
                     print('Already has that block')
                     return 'Already has that block'
@@ -97,8 +93,20 @@ class node(flask.views.MethodView):
                             print(str(app.config['port']) + ' is the leader')
                             self.leader[0] = app.config['port']
                             self.announce_leader(app.config['port'])
-                    # print(blockinfo + ' has been added to the transaction pool. Sending it to neighbors')
                     return blockinfo + ' has been added to the transaction pool. Sending it to neighbors'
+
+            if action == 'add_block':
+                block_str = flask.request.args.get('block')
+                block = self.block_json_to_obj(block_str)
+                if self.block_json_to_obj(self.blockchain[-1]).calculate_hash() != block.prev_hash:
+                    print('Block prev_hash not valid')
+                    return 'Block prev_hash not valid'
+                else:
+                    self.blockchain.append(str(block))
+                    res = block + ' has been added to the blockchain of '+ str(app.config['port']) + ' Sending it to neighbors'
+                    print(res)
+                    self.add_block(str(block))
+                    return res
 
             if action == 'request_vote':
                 leader_address = flask.request.args.get('leader')
@@ -119,22 +127,16 @@ class node(flask.views.MethodView):
                 self.vote_pool.append(v)
                 return v
 
-
-
             if action == 'add_neighbor':
                 neighbor = flask.request.args.get('neighbor')
                 self.neighbors.append(neighbor)
                 return 'Successfully add neighbor'
 
-            
-            
             if action == 'start_mining':
                 new_block = self.mining()
                 prev_hash = self.block_json_to_obj(self.blockchain[-1]).calculate_hash()
                 if new_block.prev_hash != prev_hash:
                     return 'block void'
-                # while(state != leader):
-                    
                 address = app.config['port']
                 new_block = json.dumps({'address' : address,
                           'block' : str(new_block)
@@ -153,14 +155,11 @@ class node(flask.views.MethodView):
             if action == 'show_neighbors':
                 neighbors = ''
                 for neighbor in self.neighbors:
-                    # print(neighbor)
                     neighbor = json.loads(neighbor)
                     neighbors += ('neighbor address ' + str(neighbor['address']) +'\n')
                 return neighbors
                 
             if action == 'show_transactions':
-                # for tx in self.tx_pool:
-                #     print(tx)
                 return json.dumps(self.tx_pool)
 
             if action == 'show_votes':
@@ -171,31 +170,23 @@ class node(flask.views.MethodView):
 
     def register(self):
         self.ip_address = app.config['port']
-        # print('ip_address is ' + str(self.ip_address))
         args = {'action':'register', 'address':self.ip_address}
         r = requests.get('http://127.0.0.1:8000/blockchain_platform', params=args)
         if r.status_code == 200:
             keys = json.loads(r.text)
             self.public_key[0] = keys['public_key']
             self.private_key[0] = keys['private_key']
-            # print('this is private key' + self.private_key[0])
             for neighbor in keys['neighbors']:
-                # print(neighbor)
                 self.neighbors.append(neighbor)
                 neighbor = json.loads(neighbor)
-                # print(neighbor['address'])
-                self.inform(neighbor['address'])
+                self.inform_neighbor(neighbor['address'])
             return r.text
 
     def mining(self):
-        """
+        '''
         Mining a new block and broadcast it to all users 
-        """
-
+        '''
         print('starting to mining')
-        # pick 10 transactions from local transaction pool based on the fee
-        # digital signature is unique for different transactions
-        # select 15 randomly , then pick 10 with most fee
         transactions = []
         q = Queue.PriorityQueue()
         s = set()
@@ -244,22 +235,18 @@ class node(flask.views.MethodView):
         args = {'action':'gossip_block', 'block': block}
         for neighbor in self.neighbors:
             neighbor = json.loads(neighbor)
-            # print('Neighbor address ' + str(neighbor['address']))
             url = 'http://127.0.0.1:' + str(neighbor['address']) + '/node'
             print('Trying to gossip block ' + url)
             r = requests.get(url, params=args)
-            # print(r.text)
         return 'Gossip a block'
 
     def announce_leader(self, address):
         args = {'action':'request_vote', 'leader': address}
         for neighbor in self.neighbors:
             neighbor = json.loads(neighbor)
-            # print('Neighbor address ' + str(neighbor['address']))
             url = 'http://127.0.0.1:' + str(neighbor['address']) + '/node'
             print('Requesting vote from ' + str(neighbor['address']))
             r = requests.get(url, params=args)
-            # print(r.text)
         return 'Announcing leader, collecting votes'
 
     def vote(self, leader):
@@ -277,14 +264,21 @@ class node(flask.views.MethodView):
         r = requests.get(url, params=args)
         return
 
-    def inform(self, address):
+    def add_block(self, block):
+        args = {'action':'add_block', 'block': block}
+        for neighbor in self.neighbors:
+            neighbor = json.loads(neighbor)
+            url = 'http://127.0.0.1:' + str(neighbor['address']) + '/node'
+            r = requests.get(url, params=args)
+        return 'Gossip an elected block'
+
+    def inform_neighbor(self, address):
         selfinfo = json.dumps({'address':app.config['port'],
                                 'public_key':self.private_key[0]
                                 })
         args = {'action':'add_neighbor', 'neighbor':selfinfo}
         url = 'http://127.0.0.1:' + address + '/node'
         r = requests.get(url, params=args)
-        # print (r.text)
         return r.text
 
     def get_balance(self):
@@ -330,7 +324,6 @@ def create_app(client_port):
     app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024
     app.config['port'] = client_port
     templates_dir = os.path.join(os.path.basename(os.getcwd()), 'templates')
-    #load default config and override config from an enviroment variable
     app.add_url_rule('/node',
                         view_func=node.as_view('%s/%s' % (templates_dir, 'index')),
                          methods=["GET", "POST"])
