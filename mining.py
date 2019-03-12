@@ -8,6 +8,10 @@ def mining(i):
       return
  
 if __name__ == "__main__":
+      threads = []
       for i in range(3):
-            t = threading.Thread(target=mining, args=(i,))
+            threads.append(threading.Thread(target=mining, args=(i,)))
+      for t in threads:
             t.start()
+      for t in threads:
+            t.join()
