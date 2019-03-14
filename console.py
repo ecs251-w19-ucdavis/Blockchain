@@ -27,7 +27,7 @@ class console:
         args = {'action':'start_mining'}
         r = requests.get(self.url, params=args)
         if r.status_code == 200:
-            print('node ' + str(self.address) + ' mined a block')
+            print(r.text)
             return r.text
         else:
             print('node ' + str(self.address) + ' failed to mine a block')

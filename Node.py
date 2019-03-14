@@ -149,6 +149,12 @@ class node(flask.views.MethodView):
 
             if action == 'start_mining':
                 new_block = self.mining()
+                if new_block == None:
+                    res = json.dumps({'address':app.config['port'],
+                                    'status' : 'fail',
+                                    'reason' : 'not enough transaction'
+                            })
+                    return res
                 prev_hash = self.block_json_to_obj(self.blockchain[-1]).calculate_hash()
                 if new_block.prev_hash != prev_hash:
                     return 'block void'
@@ -159,7 +165,20 @@ class node(flask.views.MethodView):
                 self.new_block_pool.append(new_block)
                 self.gossip_block(str(new_block))
                 return str(new_block)
-            
+            if action == 'vote_block':
+                if len(self.new_block_pool) > 0:
+                    t = sys.maxint
+                    for blockinfo in self.new_block_pool:
+                        block = self.block_json_to_obj(json.loads(blockinfo)['block'])
+                        if block.time_stamp < t:
+                            t = block.time_stamp
+                            address = json.loads(blockinfo)['address']
+                            print(address)
+                    if address == app.config['port']:
+                        print(str(app.config['port']) + ' is the leader')
+                        self.leader[0] = app.config['port']
+                        self.announce_leader(app.config['port'])
+                return ''
             if action == 'show_blocks':
                 blocks = []
                 for block in self.new_block_pool:
@@ -176,7 +195,8 @@ class node(flask.views.MethodView):
                     neighbor = json.loads(neighbor)
                     neighbors += ('neighbor address ' + str(neighbor['address']) +'\n')
                 return neighbors
-                
+            if action == 'show_balance':
+                return str(self.get_balance())
             if action == 'show_transactions':
                 return json.dumps(self.tx_pool)
 
@@ -201,19 +221,30 @@ class node(flask.views.MethodView):
             return r.text
 
     def mining(self):
-        '''
-        Mining a new block and broadcast it to all users 
-        '''
-        print('starting to mining')
+        print('starting to mine')
+        if len(self.tx_pool) <= 3:
+            return None
         transactions = []
         q = Queue.PriorityQueue()
         s = set()
         while len(s) < 6:
             s.add(random.randint(0,len(self.tx_pool) - 1))
+
         for x in s:
             q.put(self.tx_pool[x])
-        while(len(transactions) < 5):
+
+        while len(transactions) < 5:
             transactions.append(q.get())
+        status = 'invalid'
+        print('invalid')
+        while status == 'invalid':
+            print("--------------------------------in while loop")
+            result = self.double_spending_check(transactions)
+            status = result[0]
+            transactions = result[1]
+        if len(transactions) < 5:
+            return None
+
         difficulty = self.get_difficulty()
         print(difficulty)
         leading_zeros = ''
@@ -298,15 +329,50 @@ class node(flask.views.MethodView):
         url = 'http://127.0.0.1:' + address + '/node'
         r = requests.get(url, params=args)
         return r.text
+    
+    def double_spending_check(self, txs):
+        balance_dict = {}
+        for b in self.blockchain:
+            print('double spending')
+            block = self.block_json_to_obj(b)
+            for t in block.transactions:
+                tx = self.tx_json_to_obj(t)
+                print tx.amount
+                if tx.from_address in balance_dict:
+                    balance_dict[tx.from_address] -= tx.amount
+                    balance_dict[tx.from_address] -= tx.fee
+                else:
+                    balance_dict[tx.from_address] = 1000
+                if tx.to_address in balance_dict:
+                    balance_dict[tx.to_address] += tx.amount
+                else:
+                    balance_dict[tx.to_address] = 1000
+            for t in txs:
+                tx = self.tx_json_to_obj(t)
+                if tx.from_address in balance_dict:
+                    balance_dict[tx.from_address] -= tx.amount
+                    balance_dict[tx.from_address] -= tx.fee
+                    if balance_dict[tx.from_address] < 0:
+                        txs.remove(t)
+                        result = ('invalid',txs)
+                        return result
+                else:
+                    balance_dict[tx.from_address] = 1000
+                if tx.to_address not in balance_dict:
+                    balance_dict[tx.to_address] = 1000
+            result = ('valid', txs)
+            return result
 
     def get_balance(self):
-        total_balance = 2000
+        total_balance = 1000
         for block in self.blockchain:
             block = self.block_json_to_obj(block)
-            for transaction in block.transactions:
-                if transaction.from_address == self.public_key[0]:
+            for t in block.transactions:
+                transaction = self.tx_json_to_obj(t)
+                if transaction.from_address == str(app.config['port']):
                     total_balance -= transaction.amount
-                if transaction.to_address == self.public_key[0]:
+                    total_balance -= transaction.fee
+                if transaction.to_address == str(app.config['port']):
                     total_balance += transaction.amount
         return total_balance
 
@@ -325,7 +391,7 @@ class node(flask.views.MethodView):
 
     def tx_json_to_obj(self, tx_str):
         tx_json = json.loads(tx_str)
-        tx = transaction(tx_json["from_address"], tx_json["to_address"], tx_json["amount"], tx_json["fee"])
+        tx = transaction(tx_json['timestamp'], tx_json["from_address"], tx_json["to_address"], float(tx_json["amount"]), float(tx_json["fee"]))
         return tx
 
     def block_json_to_obj(self, newblock):
