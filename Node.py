@@ -38,11 +38,11 @@ class node(flask.views.MethodView):
                 return keys
 
             if action == 'getkeys':
-                print('getting keys')
+                # print('getting keys')
                 if self.public_key == []:
                     return 'no keys'
                 else:
-                    print('ipaddress' + str(app.config['port']))
+                    # print('ipaddress' + str(app.config['port']))
                     return self.public_key[0]
 
             if action == 'transfer':
@@ -54,18 +54,18 @@ class node(flask.views.MethodView):
                 new_tx = transaction(timestamp, app.config['port'], to_address, amount, fee)
                 self.tx_pool.append(str(new_tx))
                 self.transfer(str(new_tx))
-                print('called transfer')
+                # print('called transfer')
                 return str(new_tx)
 
             if action == 'gossip_transaction':
                 tx = flask.request.args.get('transaction')
                 if tx in self.tx_pool:
-                    print('Already has that transaction')
+                    # print('Already has that transaction')
                     return 'Already has that transaction'
                 else:
                     self.tx_pool.append(str(tx))
                     self.transfer(str(tx))
-                    print(tx + ' has been added to the transaction pool. Sending it to neighbors')
+                    # print(tx + ' has been added to the transaction pool. Sending it to neighbors')
                     return tx + ' has been added to the transaction pool. Sending it to neighbors'
 
             if action == 'gossip_block':
@@ -73,38 +73,38 @@ class node(flask.views.MethodView):
                 block = json.loads(blockinfo)['block']
                 block_obj = self.block_json_to_obj(block)
                 if self.block_json_to_obj(self.blockchain[-1]).calculate_hash() != block_obj.prev_hash:
-                    print('Block prev_hash not valid')
+                    # print('Block prev_hash not valid')
                     return 'Block prev_hash not valid'
                 if blockinfo in self.new_block_pool:
-                    print('Already has that block')
+                    # print('Already has that block')
                     return 'Already has that block'
                 else:
                     self.new_block_pool.append(str(blockinfo))
                     self.gossip_block(str(blockinfo))
-                    if len(self.new_block_pool) == 3:
-                        t = sys.maxint
-                        for blockinfo in self.new_block_pool:
-                            block = self.block_json_to_obj(json.loads(blockinfo)['block'])
-                            if block.time_stamp < t:
-                                t = block.time_stamp
-                                address = json.loads(blockinfo)['address']
-                                print(address)
-                        if address == app.config['port']:
-                            print(str(app.config['port']) + ' is the leader')
-                            self.leader[0] = app.config['port']
-                            self.announce_leader(app.config['port'])
+                    # if len(self.new_block_pool) == 3:
+                    #     t = sys.maxint
+                    #     for blockinfo in self.new_block_pool:
+                    #         block = self.block_json_to_obj(json.loads(blockinfo)['block'])
+                    #         if block.time_stamp < t:
+                    #             t = block.time_stamp
+                    #             address = json.loads(blockinfo)['address']
+                    #             # print(address)
+                    #     if address == app.config['port']:
+                    #         print(str(app.config['port']) + ' is the leader')
+                    #         self.leader[0] = app.config['port']
+                    #         self.announce_leader(app.config['port'])
                     return blockinfo + ' has been added to the transaction pool. Sending it to neighbors'
 
             if action == 'add_block':
                 block_str = flask.request.args.get('block')
                 block = self.block_json_to_obj(block_str)
                 if self.block_json_to_obj(self.blockchain[-1]).calculate_hash() != block.prev_hash:
-                    print('Block prev_hash not valid')
+                    # print('Block prev_hash not valid')
                     return 'Block prev_hash not valid'
                 else:
                     self.blockchain.append(str(block))
                     res = str(block) + ' has been added to the blockchain of '+ str(app.config['port']) + ' Sending it to neighbors'
-                    print(res)
+                    # print(res)
                     self.add_block(str(block))
                     del self.new_block_pool[:] 
                     for tx in block.transactions:
@@ -115,28 +115,28 @@ class node(flask.views.MethodView):
                 leader_address = flask.request.args.get('leader')
                 self.leader[0] = leader_address
                 if self.state[0] == 'voted':
-                    print("Already voted")
+                    # print("Already voted")
                     return "Already voted"
                 else:
                     self.state[0] = 'voted'
                     self.vote(leader_address)
-                    print("voting to " + leader_address)
+                    # print("voting to " + leader_address)
                     self.announce_leader(leader_address)
                     return "voted"
 
             if action == 'send_vote':
                 v = flask.request.args.get('vote')
-                print('sending vote')
+                # print('sending vote')
                 self.vote_pool.append(v)
                 if len(self.vote_pool) == 4:
                     blockhash = consutil.vote_sum(self.vote_pool)
-                    print(blockhash)
+                    # print(blockhash)
                     for blockinfo in self.new_block_pool:
                         block = self.block_json_to_obj(json.loads(blockinfo)['block'])
                         if block.calculate_hash() == blockhash:
                             self.blockchain.append(str(block))
                             del self.new_block_pool[:]
-                            del self.vote_pool[:]
+                            # del self.vote_pool[:]
                             self.add_block(str(block))
                             for tx in block.transactions:
                                 self.tx_pool.remove(tx)
@@ -149,36 +149,53 @@ class node(flask.views.MethodView):
 
             if action == 'start_mining':
                 new_block = self.mining()
-                if new_block == None:
+                if new_block == 1:
                     res = json.dumps({'address':app.config['port'],
                                     'status' : 'fail',
-                                    'reason' : 'not enough transaction'
+                                    'double_spending': False,
+                                    'reason' : 'not enough valid transaction'
                             })
                     return res
+                elif new_block == 2:
+                    res = json.dumps({'address':app.config['port'],
+                                    'status' : 'fail',
+                                    'double_spending': True,
+                                    'reason' : 'not enough valid transaction'
+                            })
+                    return res
+                detcted = new_block[0]
+                new_block = new_block[1]
                 prev_hash = self.block_json_to_obj(self.blockchain[-1]).calculate_hash()
                 if new_block.prev_hash != prev_hash:
                     return 'block void'
                 address = app.config['port']
                 new_block = json.dumps({'address' : address,
+                            'double_spending_detected': detected,
                           'block' : str(new_block)
                             })
                 self.new_block_pool.append(new_block)
                 self.gossip_block(str(new_block))
                 return str(new_block)
-            if action == 'vote_block':
+            if action == 'elect_block':
                 if len(self.new_block_pool) > 0:
                     t = sys.maxint
+                    res = ''
                     for blockinfo in self.new_block_pool:
                         block = self.block_json_to_obj(json.loads(blockinfo)['block'])
                         if block.time_stamp < t:
                             t = block.time_stamp
                             address = json.loads(blockinfo)['address']
-                            print(address)
+                            # print(address)
                     if address == app.config['port']:
-                        print(str(app.config['port']) + ' is the leader')
+                        res = json.dumps({'leader': True, 'address':app.config['port']})
                         self.leader[0] = app.config['port']
                         self.announce_leader(app.config['port'])
-                return ''
+                    else:
+                        res = json.dumps({'leader': False, 'address':app.config['port']})
+                else:
+                    res = json.dumps({'leader': False, 'address':app.config['port']})
+                return res
+
             if action == 'show_blocks':
                 blocks = []
                 for block in self.new_block_pool:
@@ -222,62 +239,67 @@ class node(flask.views.MethodView):
 
     def mining(self):
         print('starting to mine')
-        if len(self.tx_pool) <= 3:
-            return None
         transactions = []
-        q = Queue.PriorityQueue()
-        s = set()
-        while len(s) < 6:
-            s.add(random.randint(0,len(self.tx_pool) - 1))
+        if len(self.tx_pool) == 0:
+            return 1
+        elif len(self.tx_pool) <= 6:
+            transactions = self.tx_pool
+        else:
+            q = Queue.PriorityQueue()
+            s = set()
+            while len(s) < 6:
+                s.add(random.randint(0,len(self.tx_pool) - 1))
+            for x in s:
+                q.put(self.tx_pool[x])
+            while len(transactions) < 5:
+                transactions.append(q.get())
 
-        for x in s:
-            q.put(self.tx_pool[x])
-
-        while len(transactions) < 5:
-            transactions.append(q.get())
         status = 'invalid'
         print('invalid')
-        while status == 'invalid':
-            print("--------------------------------in while loop")
+        detected = False
+        while status == 'invalid' and len(transactions) > 0:
             result = self.double_spending_check(transactions)
             status = result[0]
+            if status == 'invalid':
+                detected = True
             transactions = result[1]
-        if len(transactions) < 5:
-            return None
-
+        
+        if len(transactions) == 0:
+            return 2
+        
         difficulty = self.get_difficulty()
-        print(difficulty)
+        # print(difficulty)
         leading_zeros = ''
         leading_zeros = leading_zeros.rjust(difficulty, '0')
         nonce = 0
-        print leading_zeros
-        print difficulty
+        # print leading_zeros
+        # print difficulty
         time_stamp = time.time()
         prev_hash =self.block_json_to_obj(self.blockchain[-1]).calculate_hash()
-        print(prev_hash)
+        # print(prev_hash)
         newblock = block(difficulty, time_stamp, transactions, prev_hash, nonce)
         hash_val = newblock.calculate_hash()
         bin_hash_val = ( bin(int(hash_val, 16))[2:] ).zfill(256)
-        print(bin_hash_val[:difficulty])
+        # print(bin_hash_val[:difficulty])
         while bin_hash_val[:difficulty] != leading_zeros:
             nonce += 1
             newblock = block(difficulty, time.time(), transactions, prev_hash, nonce)
             hash_val = newblock.calculate_hash()
             bin_hash_val = (bin(int(hash_val, 16))[2:] ).zfill(256)
-        print(bin_hash_val)
-        return newblock
+        # print(bin_hash_val)
+        return (detcted, newblock)
         
 
     def transfer(self, new_tx):
         args = {'action':'gossip_transaction', 'transaction':new_tx}
         for neighbor in self.neighbors:
-            print('neighbor')
+            # print('neighbor')
             neighbor = json.loads(neighbor)
-            print('neighbor address ' + str(neighbor['address']))
+            # print('neighbor address ' + str(neighbor['address']))
             url = 'http://127.0.0.1:' + str(neighbor['address']) + '/node'
-            print('trying to gossip transaction ' + url)
+            # print('trying to gossip transaction ' + url)
             r = requests.get(url, params=args)
-            print(r.text)
+            # print(r.text)
         return 'Making a transaction'
 
     def gossip_block(self, block):
@@ -285,7 +307,7 @@ class node(flask.views.MethodView):
         for neighbor in self.neighbors:
             neighbor = json.loads(neighbor)
             url = 'http://127.0.0.1:' + str(neighbor['address']) + '/node'
-            print('Trying to gossip block ' + url)
+            # print('Trying to gossip block ' + url)
             r = requests.get(url, params=args)
         return 'Gossip a block'
 
@@ -294,7 +316,7 @@ class node(flask.views.MethodView):
         for neighbor in self.neighbors:
             neighbor = json.loads(neighbor)
             url = 'http://127.0.0.1:' + str(neighbor['address']) + '/node'
-            print('Requesting vote from ' + str(neighbor['address']))
+            # print('Requesting vote from ' + str(neighbor['address']))
             r = requests.get(url, params=args)
         return 'Announcing leader, collecting votes'
 
@@ -309,7 +331,7 @@ class node(flask.views.MethodView):
         v = vote(app.config['port'], block_hash, stake)
         args = {'action':'send_vote', 'vote': str(v)}
         url = 'http://127.0.0.1:' + leader + '/node'
-        print('sending vote to leader ' + leader)
+        # print('sending vote to leader ' + leader)
         r = requests.get(url, params=args)
         return
 
@@ -332,12 +354,16 @@ class node(flask.views.MethodView):
     
     def double_spending_check(self, txs):
         balance_dict = {}
+        for t in txs:
+            tx = self.tx_json_to_obj(t)
+            if tx.from_address not in balance_dict:
+                balance_dict[tx.from_address] = 1000
+            if tx.to_address not in balance_dict:
+                balance_dict[tx.to_address] = 1000
         for b in self.blockchain:
-            print('double spending')
             block = self.block_json_to_obj(b)
             for t in block.transactions:
                 tx = self.tx_json_to_obj(t)
-                print tx.amount
                 if tx.from_address in balance_dict:
                     balance_dict[tx.from_address] -= tx.amount
                     balance_dict[tx.from_address] -= tx.fee
@@ -347,21 +373,23 @@ class node(flask.views.MethodView):
                     balance_dict[tx.to_address] += tx.amount
                 else:
                     balance_dict[tx.to_address] = 1000
-            for t in txs:
-                tx = self.tx_json_to_obj(t)
-                if tx.from_address in balance_dict:
-                    balance_dict[tx.from_address] -= tx.amount
-                    balance_dict[tx.from_address] -= tx.fee
-                    if balance_dict[tx.from_address] < 0:
-                        txs.remove(t)
-                        result = ('invalid',txs)
-                        return result
-                else:
-                    balance_dict[tx.from_address] = 1000
-                if tx.to_address not in balance_dict:
-                    balance_dict[tx.to_address] = 1000
-            result = ('valid', txs)
-            return result
+        print 'current balance'
+        print balance_dict
+        for t in txs:
+            tx = self.tx_json_to_obj(t)
+            if tx.from_address in balance_dict:
+                balance_dict[tx.from_address] -= tx.amount
+                balance_dict[tx.from_address] -= tx.fee
+                print 'balance is' + str(balance_dict[tx.from_address])
+                if balance_dict[tx.from_address] < 0:
+                    print('double spending detected')
+                    txs.remove(t)
+                    result = ('invalid',txs)
+                    return result
+        print 'balance after check'
+        print balance_dict
+        result = ('valid', txs)
+        return result
 
     def get_balance(self):
         total_balance = 1000

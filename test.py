@@ -1,4 +1,5 @@
 from consutil import *
 import random
+from console import *
 if __name__ == "__main__":
-      print(round(random.uniform(0, 100), 2))
+      console.elect_block()

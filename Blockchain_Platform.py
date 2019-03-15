@@ -49,9 +49,9 @@ class blockchain_platform(flask.views.MethodView):
                 self.address_list.append(new_node)
                 return user_info
 
-            if action == 'print':
-                print(json.dumps(self.registered_users))
-                return json.dumps(self.registered_users)
+            # if action == 'print':
+            #     print(json.dumps(self.registered_users))
+            #     return json.dumps(self.registered_users)
             if action == 'update_difficulty':
                 self.update_mining_difficulty(4)
                 return str(self.mining_difficulty[0])
@@ -63,6 +63,8 @@ class blockchain_platform(flask.views.MethodView):
             if action == 'get_firstblock':
                 return str(self.create_genesis_block())
 
+            if action == 'get_registered_users':
+                return json.dumps(self.registered_users)
     def create_genesis_block(self):
         creation_date = time.mktime(datetime.datetime.strptime(self.chain_creation_date, "%d/%m/%Y").timetuple())
         return block(self.mining_difficulty, creation_date, [], 'this is the first block', 0)
