@@ -163,7 +163,7 @@ class node(flask.views.MethodView):
                                     'reason' : 'not enough valid transaction'
                             })
                     return res
-                detcted = new_block[0]
+                detected = new_block[0]
                 new_block = new_block[1]
                 prev_hash = self.block_json_to_obj(self.blockchain[-1]).calculate_hash()
                 if new_block.prev_hash != prev_hash:
@@ -204,7 +204,7 @@ class node(flask.views.MethodView):
                 return json.dumps(blocks)
 
             if action == 'show_blockchain':
-                return json.dumps(self.blockchain)
+                return json.dumps(self.blockchain,indent =2)
 
             if action == 'show_neighbors':
                 neighbors = ''
@@ -287,7 +287,7 @@ class node(flask.views.MethodView):
             hash_val = newblock.calculate_hash()
             bin_hash_val = (bin(int(hash_val, 16))[2:] ).zfill(256)
         # print(bin_hash_val)
-        return (detcted, newblock)
+        return (detected, newblock)
         
 
     def transfer(self, new_tx):

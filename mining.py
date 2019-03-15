@@ -1,3 +1,4 @@
+#!/usr/bin/python 
 from console import *
 import threading
 
@@ -15,3 +16,4 @@ if __name__ == "__main__":
             t.start()
       for t in threads:
             t.join()
+      console.elect_block()
