@@ -28,7 +28,13 @@ class consutil:
     @staticmethod
     def vote_sum(raw_vote_list):
 
-        vote_list = consutil.vote_json_to_obj(raw_vote_list)
+        vote_obj_list = consutil.vote_json_to_obj(raw_vote_list)
+        vote_list = []
+        for voter in vote_obj_list:
+            if voter.stake != 0:
+                vote_list.append(voter)
+            else:
+                print("invalid vote, stake : 0 ")
 
         nums = len(vote_list)
         vote_list.sort(key = lambda x : x.stake, reverse = True)
@@ -56,10 +62,10 @@ class consutil:
         return final_block_hash
 
 # if __name__ == "__main__":
-#     json_list = ['{"stake": 1500, "from_address": 8002, "blockhash": "1001a5c16393ac8a682c4150a142edc0807f67a58c2d46c4f77ae538ec417638"}',
+#     json_list = ['{"stake":0, "from_address": 8002, "blockhash": "1001a5c16393ac8a682c4150a142edc0807f67a58c2d46c4f77ae538ec417638"}',
 #     '{"stake": 1000, "from_address": 8001, "blockhash": "2001a5c16393ac8a682c4150a142edc0807f67a58c2d46c4f77ae538ec417638"}',
 #     '{"stake": 300, "from_address": 8003, "blockhash": "0001a5c16393ac8a682c4150a142edc0807f67a58c2d46c4f77ae538ec417638"}',
-#     '{"stake": 300, "from_address": 8004, "blockhash": "0001a5c16393ac8a682c4150a142edc0807f67a58c2d46c4f77ae538ec417638"}',
+#     '{"stake": 0, "from_address": 8004, "blockhash": "0001a5c16393ac8a682c4150a142edc0807f67a58c2d46c4f77ae538ec417638"}',
 #     '{"stake": 100, "from_address": 8001, "blockhash": "2001a5c16393ac8a682c4150a142edc0807f67a58c2d46c4f77ae538ec417638"}',
 #     '{"stake": 300, "from_address": 8003, "blockhash": "0001a5c16393ac8a682c4150a142edc0807f67a58c2d46c4f77ae538ec417638"}',
 #     '{"stake": 300, "from_address": 8004, "blockhash": "0001a5c16393ac8a682c4150a142edc0807f67a58c2d46c4f77ae538ec417638"}' ]
