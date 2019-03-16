@@ -322,7 +322,9 @@ class node(flask.views.MethodView):
 
     def vote(self, leader):
         balance = self.get_balance()
-        if balance > 500:
+        if random.randint(0,1) == 0:
+            stake = 0
+        elif balance > 500:
             stake = round(random.uniform(0, 500), 2)
         else:
             stake = round(random.uniform(0, balance), 2)
