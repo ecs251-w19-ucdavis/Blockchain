@@ -73,5 +73,5 @@ class transaction:
 		return tx
 
 	def __cmp__(self, other):
-        	return cmp(self.fee, other.fee)
+		return cmp(self.fee, other.fee)
 

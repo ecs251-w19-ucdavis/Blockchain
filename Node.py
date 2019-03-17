@@ -16,6 +16,7 @@ import Queue
 import random
 import threading 
 from consutil import *
+import copy
 
 client_port = 0
 class node(flask.views.MethodView):
@@ -95,7 +96,7 @@ class node(flask.views.MethodView):
                     #         self.announce_leader(app.config['port'])
                     return blockinfo + ' has been added to the transaction pool. Sending it to neighbors'
 
-            if action == 'add_block':
+            if action == 'gossip_elected_block':
                 block_str = flask.request.args.get('block')
                 block = self.block_json_to_obj(block_str)
                 if self.block_json_to_obj(self.blockchain[-1]).calculate_hash() != block.prev_hash:
@@ -105,10 +106,14 @@ class node(flask.views.MethodView):
                     self.blockchain.append(str(block))
                     res = str(block) + ' has been added to the blockchain of '+ str(app.config['port']) + ' Sending it to neighbors'
                     # print(res)
-                    self.add_block(str(block))
+                    self.gossip_elected_block(str(block))
                     del self.new_block_pool[:] 
+                    print self.tx_pool
                     for tx in block.transactions:
+                        print("111111111111")
+                        print(tx)
                         self.tx_pool.remove(tx)
+                    print self.tx_pool
                     return res
 
             if action == 'request_vote':
@@ -128,16 +133,16 @@ class node(flask.views.MethodView):
                 v = flask.request.args.get('vote')
                 # print('sending vote')
                 self.vote_pool.append(v)
-                if len(self.vote_pool) == 4:
-                    blockhash = consutil.vote_sum(self.vote_pool)
-                    # print(blockhash)
+                user_count = int(self.get_user_count())
+                if len(self.vote_pool) == user_count:
+                    (blockhash, zero_stake) = consutil.vote_sum(self.vote_pool)
                     for blockinfo in self.new_block_pool:
                         block = self.block_json_to_obj(json.loads(blockinfo)['block'])
                         if block.calculate_hash() == blockhash:
                             self.blockchain.append(str(block))
                             del self.new_block_pool[:]
                             # del self.vote_pool[:]
-                            self.add_block(str(block))
+                            self.gossip_elected_block(str(block))
                             for tx in block.transactions:
                                 self.tx_pool.remove(tx)
                 return v
@@ -187,7 +192,8 @@ class node(flask.views.MethodView):
                             address = json.loads(blockinfo)['address']
                             # print(address)
                     if address == app.config['port']:
-                        res = json.dumps({'leader': True, 'address':app.config['port']})
+                        zero_stake_list = []
+                        res = json.dumps({'leader': True, 'address':app.config['port'], 'zero_stake_list':zero_stake_list})
                         self.leader[0] = app.config['port']
                         self.announce_leader(app.config['port'])
                     else:
@@ -243,7 +249,7 @@ class node(flask.views.MethodView):
         if len(self.tx_pool) == 0:
             return 1
         elif len(self.tx_pool) <= 6:
-            transactions = self.tx_pool
+            transactions = copy.deepcopy(self.tx_pool)
         else:
             q = Queue.PriorityQueue()
             s = set()
@@ -255,7 +261,7 @@ class node(flask.views.MethodView):
                 transactions.append(q.get())
 
         status = 'invalid'
-        print('invalid')
+        # print('invalid')
         detected = False
         while status == 'invalid' and len(transactions) > 0:
             result = self.double_spending_check(transactions)
@@ -322,7 +328,7 @@ class node(flask.views.MethodView):
 
     def vote(self, leader):
         balance = self.get_balance()
-        if random.randint(0,1) == 0:
+        if random.randint(0, 1) == 0:
             stake = 0
         elif balance > 500:
             stake = round(random.uniform(0, 500), 2)
@@ -337,8 +343,8 @@ class node(flask.views.MethodView):
         r = requests.get(url, params=args)
         return
 
-    def add_block(self, block):
-        args = {'action':'add_block', 'block': block}
+    def gossip_elected_block(self, block):
+        args = {'action':'gossip_elected_block', 'block': block}
         for neighbor in self.neighbors:
             neighbor = json.loads(neighbor)
             url = 'http://127.0.0.1:' + str(neighbor['address']) + '/node'
@@ -405,6 +411,12 @@ class node(flask.views.MethodView):
                 if transaction.to_address == str(app.config['port']):
                     total_balance += transaction.amount
         return total_balance
+
+    def get_user_count(self):
+        args = {'action':'get_user_count'}
+        r = requests.get('http://127.0.0.1:8000/blockchain_platform', params=args)
+        user_count = r.text
+        return str(user_count)
 
     def get_difficulty(self):
         args = {'action':'get_difficulty'}

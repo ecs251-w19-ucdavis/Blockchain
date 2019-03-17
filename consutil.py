@@ -27,15 +27,17 @@ class consutil:
 
     @staticmethod
     def vote_sum(raw_vote_list):
-
+        zero_stake = False
         vote_obj_list = consutil.vote_json_to_obj(raw_vote_list)
         vote_list = []
+        print("\n\n================================================")
         for voter in vote_obj_list:
             if voter.stake != 0:
                 vote_list.append(voter)
             else:
-                print("invalid vote, stake : 0 ")
-
+                print(str(voter) + " " + "is in valid")
+                zero_stake = True
+        print("================================================\n\n")
         nums = len(vote_list)
         vote_list.sort(key = lambda x : x.stake, reverse = True)
         low, high = math.floor(nums*0.682), math.floor(nums*0.954) 
@@ -59,7 +61,7 @@ class consutil:
 
         final_block_hash = sorted_voted_blocks[0][0] 
 
-        return final_block_hash
+        return (final_block_hash, zero_stake)
 
 # if __name__ == "__main__":
 #     json_list = ['{"stake":0, "from_address": 8002, "blockhash": "1001a5c16393ac8a682c4150a142edc0807f67a58c2d46c4f77ae538ec417638"}',

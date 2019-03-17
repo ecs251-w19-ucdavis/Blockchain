@@ -40,12 +40,19 @@ class console:
         if r.status_code == 200:
             print('node: ' + str(self.address) + ', balance: ' + str(r.text))
 
+    def show_transactions(self):
+        args = {'action':'show_transactions'}
+        r = requests.get(self.url, params=args)
+        if r.status_code == 200:
+            print json.dumps(json.loads(r.text), indent =2)
+
     def show_blockchain(self):
         address_list = console.get_registered_users()
         url = 'http://127.0.0.1:' + str(self.address) + '/node'
         args = {'action':'show_blockchain'}
         r = requests.get(url, params=args)
         if r.status_code == 200:
+            print json.dumps(json.loads(r.text), indent = 2)
             return r.text
 
     @staticmethod
@@ -73,4 +80,5 @@ class console:
                     print(r.text)
                 # return r.text
     
+   
     

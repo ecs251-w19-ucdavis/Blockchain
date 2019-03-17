@@ -65,6 +65,11 @@ class blockchain_platform(flask.views.MethodView):
 
             if action == 'get_registered_users':
                 return json.dumps(self.registered_users)
+            
+            if action == 'get_user_count':
+                print(len(self.registered_users))
+                return str(len(self.registered_users))
+
     def create_genesis_block(self):
         creation_date = time.mktime(datetime.datetime.strptime(self.chain_creation_date, "%d/%m/%Y").timetuple())
         return block(self.mining_difficulty, creation_date, [], 'this is the first block', 0)
